@@ -88,7 +88,7 @@ if(cluster.isMaster){
     });
 
 } else {
-    _.each(_.range(NUM_CONNECTIONS), function (connectionIndex) {
+    async.eachLimit(_.range(NUM_CONNECTIONS), 20, function (connectionIndex, cb) {
         var messageTimings = [];
 
         socket.identity = 'subscriber' + uuid.v4();
@@ -96,7 +96,11 @@ if(cluster.isMaster){
         socket.connect(port);
         socket.subscribe(subKey);
 
-        logger.log('sub:' + process.pid, 'Bound to queue. Waiting for messages...');
+        if (connectionIndex > 1 && connectionIndex % (NUM_CONNECTIONS / 10) === 0) {
+            logger.log('worker:bound:' + process.pid,
+            '<' + ((connectionIndex / NUM_CONNECTIONS) * 100) +
+            '% done> Bound to queue. Waiting for messages...');
+        }
 
         var previousId = -1;
         var messagesReceived = 0;
@@ -113,6 +117,12 @@ if(cluster.isMaster){
                 messagesReceived: messagesReceived,
                 time: diff
             });
+
+            return setTimeout(cb, Math.random() * 200 | 0);
+        }, function (){
+            logger.log('worker:bound:' + process.pid,
+            d3.format(',')(NUM_CONNECTIONS) +
+            ' connections bound to queue. Waiting for messages...');
         });
     });
 }
