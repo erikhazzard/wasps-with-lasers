@@ -3,7 +3,7 @@ var microtime = require('microtime');
 var socket = zeromq.socket('pub');
 
 //// Original
-socket.bindSync('inproc://127.0.0.1:2002');
+socket.bindSync('epgm://224.0.0.1:5555');
 
 var msgId = 0;
 var randomString = (Math.random()).toString(16);

@@ -18,7 +18,7 @@ var zmq = require('zmq');
 var socket = zmq.socket('sub');
 
 //var port = 'tcp://127.0.0.1:2002';
-var port = 'inproc://127.0.0.1:2002';
+var port = 'epgm://224.0.0.1:5555';
 
 /**
  * CONFIG
