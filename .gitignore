@@ -1,0 +1,8 @@
+.DS_Store
+.sass-cache
+*.swp
+dump.rdb
+rethinkdb_data/
+secrets.json
+node_modules
+npm-debug.log
