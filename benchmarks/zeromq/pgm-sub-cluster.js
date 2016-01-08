@@ -7,6 +7,7 @@
 var d3 = require('d3');
 var _ = require('lodash');
 var uuid = require('uuid');
+var async = require('async');
 var logger = require('bragi');
 var cluster = require('cluster');
 var microtime = require('microtime');
