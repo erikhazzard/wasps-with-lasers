@@ -18,7 +18,7 @@ var zmq = require('zmq');
 var socket = zmq.socket('sub');
 
 // get local IP address
-var addresses = require('../util/get-local-ip-address.js')();
+var addresses = require('../util/get-local-ip-addresses.js')();
 logger.log('pgm-sub-cluster', 'Found IP addresses: %j', addresses);
 
 // NOTE: this should be replaced by your internal IP

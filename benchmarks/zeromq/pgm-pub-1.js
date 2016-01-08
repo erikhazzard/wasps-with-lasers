@@ -2,7 +2,7 @@ var zeromq = require('zmq');
 var microtime = require('microtime');
 var socket = zeromq.socket('pub');
 
-var addresses = require('../util/get-local-ip-address.js')();
+var addresses = require('../util/get-local-ip-addresses.js')();
 //// Original
 socket.bindSync('epgm://' + addresses[0] + ';224.0.0.1:5555');
 
