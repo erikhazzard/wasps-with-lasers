@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "async": "^1.5.2",
+    "bragi": "^0.1.0",
+    "commander": "^2.9.0",
+    "d3": "^3.5.12",
+    "lodash": "^3.10.1",
+    "microtime": "^2.0.0",
+    "simple-statistics": "^1.0.1",
+    "uuid": "^2.0.1",
+    "zmq": "^2.14.0"
+  }
+}
