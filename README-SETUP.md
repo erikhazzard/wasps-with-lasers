@@ -34,7 +34,7 @@ wget http://download.zeromq.org/zeromq-4.1.4.tar.gz
 tar -xvzf zeromq-4.1.4.tar.gz
 cd zeromq-4.1.4
 ./autogen.sh
-./configure && make check
+./configure --with-pgm && make check
 sudo make install
 sudo ldconfig
 

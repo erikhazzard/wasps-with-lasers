@@ -17,8 +17,12 @@ logger.transports.get('Console').property('showMeta', false);
 var zmq = require('zmq');
 var socket = zmq.socket('sub');
 
-//var port = 'tcp://127.0.0.1:2002';
-var port = 'epgm://224.0.0.1:5555';
+// get local IP address
+var addresses = require('../util/get-local-ip-address.js')();
+logger.log('pgm-sub-cluster', 'Found IP addresses: %j', addresses);
+
+// NOTE: this should be replaced by your internal IP
+var port = 'epgm://' + addresses[0] + ';224.0.0.1:5555';
 
 /**
  * CONFIG
@@ -118,12 +122,13 @@ if(cluster.isMaster){
                 messagesReceived: messagesReceived,
                 time: diff
             });
-
-            return setTimeout(cb, Math.random() * 200 | 0);
-        }, function (){
-            logger.log('worker:bound:' + process.pid,
-            d3.format(',')(NUM_CONNECTIONS) +
-            ' connections bound to queue. Waiting for messages...');
         });
+
+        return setTimeout(cb, Math.random() * 200 | 0);
+    },
+    function (){
+        logger.log('worker:bound:' + process.pid,
+        d3.format(',')(NUM_CONNECTIONS) +
+        ' connections bound to queue. Waiting for messages...');
     });
 }
