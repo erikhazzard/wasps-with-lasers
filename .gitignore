@@ -6,3 +6,4 @@ rethinkdb_data/
 secrets.json
 node_modules
 npm-debug.log
+benchmarks/rethinkdb/log_file
