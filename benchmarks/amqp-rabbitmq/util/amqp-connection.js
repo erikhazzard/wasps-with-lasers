@@ -11,7 +11,7 @@
 var amqpConnectionObject = require('./amqp-connection-wrapper.js');
 
 // TODO: could pass in amqp connection properties
-var amqpObj = amqpConnectionObject({});
+var amqpObj = amqpConnectionObject();
 
 // immediately connect
 amqpObj.connect();

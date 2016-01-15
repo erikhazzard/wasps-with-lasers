@@ -6,7 +6,9 @@ var amqp = require('amqplib/callback_api');
 var defaultAmqpOptions = {host: 'amqp://localhost'};
 
 // for wasp testing
-defaultAmqpOptions.host = '172.30.0.179';
+defaultAmqpOptions.host = 'amqp://172.30.0.179';
+//defaultAmqpOptions.host = 'amqp://52.90.230.226:5672';
+//defaultAmqpOptions.host = 'amqp://guest:guest@52.90.230.226:5672';
 
 /**
  *
@@ -30,7 +32,7 @@ defaultAmqpOptions.host = '172.30.0.179';
 function createAmqpConnection (options) {
     options = options || {};
     var amqpOptions = options.amqpOptions || defaultAmqpOptions;
-    amqpOptions.host = amqpOptions.host || defaultAmqpOptions.host;
+    amqpOptions.host = amqpOptions.host || defaultAmqpOptions.host || 'amqp://localhost';
 
     var BACKOFF_LIMIT = 3000; // in seconds
 
@@ -87,7 +89,8 @@ function createAmqpConnection (options) {
      * for errors
      */
     returnObject.connect = function connect () {
-        logger.log('amqp-connection:connect', 'Attempting to connect...');
+        logger.log('amqp-connection:connect',
+        'Attempting to connect to %j', amqpOptions);
 
         // reset connection objets
         returnObject.conn = null;
@@ -96,7 +99,7 @@ function createAmqpConnection (options) {
         /**
          * Connect to amqp serverjjj
          */
-        amqp.connect(amqpOptions, function connectToAmqp (err, conn) {
+        amqp.connect(amqpOptions.host, function connectToAmqp (err, conn) {
             if (err || !conn) {
                 logger.log('error:amqp-connection:connect', 'error connecting: ' + err);
                 return reconnect();
