@@ -93,7 +93,6 @@ if(cluster.isMaster){
             _.range(NUM_CONNECTIONS),
             50,
             function (connectionIndex, cb) {
-
                 amqpConnection.conn.createChannel(function(err, ch) {
                     ch.assertExchange(EXCHANGE, 'topic', {durable: true});
                     ch.assertQueue('', {exclusive: true}, function(err, ok) {
@@ -117,14 +116,20 @@ if(cluster.isMaster){
                         ch.consume(queue, gotMessage, {noAck: true}, function(err) {
                             // Bind channel and consume message
                             ch.bindQueue(queue, EXCHANGE, ROUTING_KEY, {}, function () {
-                                logger.log('worker:' + process.pid,
-                                '[' + connectionIndex + '] Bound, waiting for messages');
+                                if (connectionIndex > 1 && connectionIndex % (NUM_CONNECTIONS / 10) === 0) {
+                                    logger.log('worker:bound:' + process.pid,
+                                    '<' + ((connectionIndex / NUM_CONNECTIONS) * 100) +
+                                    '% done> Bound to queue. Waiting for messages...');
+                                }
+
+                                return setImmediate(cb);
                             });
                         });
-
-                        return cb();
                     });
             });
-        }, function (){});
+            }, function (){
+                logger.log('allBound/worker:' + process.pid,
+                'All bound, waiting for messages');
+            });
     });
 }

@@ -52,9 +52,10 @@ if(cluster.isMaster){
     }
 
     var totalMessagesReceived = 0;
+    var totalMessagesReceivedLatest = 0;
+    var numRows = 0;
     var times = [];
     var timesLatest = [];
-    var start = microtime.now();
 
     logger.log('cluster-master', 'Starting up with ' +
         NUM_CPUS + ' CPUs and ' + NUM_CONNECTIONS + ' connections per CPU ' +
@@ -62,41 +63,43 @@ if(cluster.isMaster){
 
     _.each(workers, function (worker) {
         worker.on('message', function(message) {
-            if (totalMessagesReceived % (NUM_CPUS * NUM_CONNECTIONS) === 1) {
-                logger.log('cluster-master', '>> Restarting timer: ' + totalMessagesReceived);
-                start = microtime.now();
-            }
-
+            numRows += message.rowLength;
             totalMessagesReceived++;
+            totalMessagesReceivedLatest++;
             times.push(message.time);
             timesLatest.push(message.time);
-
-            // reset after each message
-            if (totalMessagesReceived % (NUM_CPUS * NUM_CONNECTIONS) === 0) {
-                logger.log('cluster-master', '[' + ((microtime.now() - start) / 1000) +
-                    'ms] Got ' + d3.format(',')(NUM_CPUS * NUM_CONNECTIONS) +
-                    ' messages - <' +
-                    d3.format(',')(totalMessagesReceived) + '> total');
-                logger.log('cluster-master', '\t MIN (current): ' + ss.min(timesLatest) + 'ms');
-                logger.log('cluster-master', '\t MAX (current): ' + ss.max(timesLatest) + 'ms');
-                logger.log('cluster-master', '\t MEAN (current): ' + ss.mean(timesLatest) + 'ms');
-                logger.log('cluster-master', '\t HARMONIC MEAN (current): ' + ss.harmonicMean(timesLatest) + 'ms');
-                logger.log('cluster-master', '\t MIN (total): ' + ss.min(times) + 'ms');
-                logger.log('cluster-master', '\t MAX (total): ' + ss.max(times) + 'ms');
-                logger.log('cluster-master', '\t MEAN (total): ' + ss.mean(times) + 'ms');
-                logger.log('cluster-master', '\t HARMONIC MEAN (total): ' + ss.harmonicMean(times) + 'ms');
-
-                start = microtime.now();
-                timesLatest = [];
-            }
         });
     });
+
+    // Log info every second
+    setInterval(() => {
+        logger.log('cluster-master', 'Got ' +
+            d3.format(',')(totalMessagesReceivedLatest) + ' messages - <' +
+            d3.format(',')(numRows) + '> number of rows (squashed) ' +
+            d3.format(',')(totalMessagesReceived) + '> total');
+        logger.log('cluster-master', '\t MIN (current): ' + ss.min(timesLatest) + 'ms');
+        logger.log('cluster-master', '\t MAX (current): ' + ss.max(timesLatest) + 'ms');
+        logger.log('cluster-master', '\t MEAN (current): ' + ss.mean(timesLatest) + 'ms');
+        logger.log('cluster-master', '\t HARMONIC MEAN (current): ' + ss.harmonicMean(timesLatest) + 'ms');
+
+        /*
+        logger.log('cluster-master', '\t MIN: ' + ss.min(times) + 'ms');
+        logger.log('cluster-master', '\t MAX: ' + ss.max(times) + 'ms');
+        logger.log('cluster-master', '\t MEAN: ' + ss.mean(times) + 'ms');
+        logger.log('cluster-master', '\t HARMONIC MEAN: ' + ss.harmonicMean(times) + 'ms');
+        */
+
+        totalMessagesReceivedLatest = 0;
+        timesLatest = [];
+        numRows = 0;
+    }, 1000);
+
 
 } else {
     /**
      * Setup C * N change feed listeners
      *
-     * NOTES: If the limit is set to much above 20, rethink will always throw 
+     * NOTES: If the limit is set to much above 20, rethink will always throw
      * errors. e.g., if the eachLimit limit value is 100, we will see:
      *
      *
@@ -125,13 +128,12 @@ if(cluster.isMaster){
                     '<' + ((connectionIndex / NUM_CONNECTIONS) * 100) +
                     '% done> Bound to queue. Waiting for messages...');
 
-                } else if (connectionIndex >= NUM_CONNECTIONS - 1){
-                    logger.log('worker:bound:' + process.pid,
-                    'Done! Waiting for messages');
                 }
 
                 // Listen for changes
-                r.table(TABLE_NAME).changes({squash: true}).run(connection, function(err, cursor) {
+                r.table(TABLE_NAME).changes({
+                    // squash: true
+                }).run(connection, function(err, cursor) {
                     cursor.each(function(err, row) {
                         if (err) { console.log('ERROR: ' + err); }
 
@@ -140,6 +142,7 @@ if(cluster.isMaster){
 
                         process.send({
                             messagesReceived: messagesReceived,
+                            rowLength: row.length,
                             time: diff
                         });
                     });
@@ -147,5 +150,8 @@ if(cluster.isMaster){
 
                 return setTimeout(cb, Math.random() * 200 | 0);
             });
-    }, function (){});
+    }, function (){
+        logger.log('worker:bound:' + process.pid,
+        'Done! Waiting for messages');
+    });
 }

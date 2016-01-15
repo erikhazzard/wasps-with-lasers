@@ -18,7 +18,7 @@ sudo apt-get update
 sudo apt-get upgrade
 
 ## Setup Libraries
-sudo apt-get install -y build-essential pkg-config autoconf automake libtool uuid-dev libpgm-dev python-dev python-pip ntp libicu-dev
+sudo apt-get install -y build-essential pkg-config autoconf automake libtool uuid-dev libpgm-dev python-dev python-pip ntp libicu-dev htop
 
 ### setup libsodium
 git clone git://github.com/jedisct1/libsodium.git
@@ -43,6 +43,10 @@ sudo ldconfig
 curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
+### setup redis
+sudo add-apt-repository ppa:chris-lea/redis-server
+sudo apt-get update
+sudo apt-get install redis-server
 
 # System Config
 ### Configure system settings
@@ -103,6 +107,12 @@ ntpdate -s time.nist.gov
 
 exit 0
 ```
+
+# Software
+## RethinkDB
+https://www.rethinkdb.com/docs/install/ubuntu/
+and
+https://www.rethinkdb.com/docs/start-on-startup/#startup-with-initd
 
 
 ## NOTES
