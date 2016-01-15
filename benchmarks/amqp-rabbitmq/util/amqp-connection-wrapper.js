@@ -30,6 +30,8 @@ defaultAmqpOptions.host = '172.30.0.179';
 function createAmqpConnection (options) {
     options = options || {};
     var amqpOptions = options.amqpOptions || defaultAmqpOptions;
+    amqpOptions.host = amqpOptions.host || defaultAmqpOptions.host;
+
     var BACKOFF_LIMIT = 3000; // in seconds
 
     // setup event emitter
