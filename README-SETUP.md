@@ -109,11 +109,17 @@ exit 0
 ```
 
 # Software
+
 ## RethinkDB
 https://www.rethinkdb.com/docs/install/ubuntu/
 and
 https://www.rethinkdb.com/docs/start-on-startup/#startup-with-initd
 
+Note: Each client server should run a proxy, e.g., `/usr/bin/rethinkdb proxy --join HOST --bind all`
+
+## RabbitMQ
+Add management plugin:
+`rabbitmq-plugins enable rabbitmq_management`
 
 ## NOTES
 After setting these values, reboot the system

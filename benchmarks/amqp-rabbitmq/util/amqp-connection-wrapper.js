@@ -5,6 +5,9 @@ var amqp = require('amqplib/callback_api');
 
 var defaultAmqpOptions = {host: 'amqp://localhost'};
 
+// for wasp testing
+defaultAmqpOptions.host = '172.30.0.179';
+
 /**
  *
  * Wrapped AMQP connection which handles reconnecting and initial setup
