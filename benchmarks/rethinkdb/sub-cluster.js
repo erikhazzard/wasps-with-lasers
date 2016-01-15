@@ -15,6 +15,7 @@ var ss = require('simple-statistics');
 logger.transports.get('Console').property('showMeta', false);
 
 var r = require('rethinkdb');
+var CONNECT_CONFIG = {host: 'localhost', port: 28015};
 
 /**
  * CONFIG
@@ -33,12 +34,16 @@ var TABLE_NAME = 'messages';
 var program = require('commander');
 program
     .version('0.0.1')
-    .option('-n, --numConnections [numConnections]', 'How many connections per CPU', 'numConnections')
-    .option('-c, --numCPUs [numCPUs]', 'How many CPUs', 'numCPUs')
+    .option('-n, --numConnections [numConnections]', 'How many connections per CPU')
+    .option('-c, --numCPUs [numCPUs]', 'How many CPUs')
+    .option('-h, --host [host]', 'RethinkBD host')
+    .option('-p, --port [port]', 'RethinkBD port')
     .parse(process.argv);
 
 var NUM_CONNECTIONS = isNaN(+program.numConnections) ? 1 : +program.numConnections;
 var NUM_CPUS = isNaN(+program.numCPUs) ? 8 : +program.numCPUs;
+if (program.host) { CONNECT_CONFIG.host = program.host; }
+if (program.port) { CONNECT_CONFIG.port = program.port; }
 
 if(cluster.isMaster){
     /**
@@ -119,7 +124,7 @@ if(cluster.isMaster){
             var messagesReceived = 0;
             var previousId = -1;
 
-            r.connect({host: 'localhost', port: 28015}, function(err, conn) {
+            r.connect(CONNECT_CONFIG, function(err, conn) {
                 connection = conn;
 
                 // spit out progress at 10 % intervals
