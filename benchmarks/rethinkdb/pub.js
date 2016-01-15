@@ -11,6 +11,8 @@ program
     .option('-n, --numMessagesPerSecond [numMessagesPerSecond]', 'How many messages to publish per second')
     .option('-t, --timeout [timeout]', 'Length of time before publishing next message batch (in milliseconds, defaults to 1000, or 1 second)')
     .option('-p, --numPasses [numPasses]', 'If provided, will stop after n passes (after messages have been published p times)')
+    .option('-h, --host [host]', 'RethinkBD host')
+    .option('-p, --port [port]', 'RethinkBD port')
     .parse(process.argv);
 /**
  * To publish more than 1 per second, increase this value. Note that the more
@@ -20,6 +22,10 @@ program
 var NUM_MESSAGES = isNaN(+program.numMessagesPerSecond) ? 1 : +program.numMessagesPerSecond;
 var NUM_PASSES = isNaN(+program.numPasses) ? Infinity : +program.numPasses;
 var TIMEOUT = isNaN(+program.timeout) ? 1000 : +program.timeout;
+
+var CONNECT_CONFIG = {host: 'localhost', port: 28015};
+if (program.host) { CONNECT_CONFIG.host = program.host; }
+if (program.port) { CONNECT_CONFIG.port = program.port; }
 
 var TABLE_NAME = 'messages'; // needs to match sub-cluster.js
 var DURABILITY = 'soft';
@@ -33,7 +39,7 @@ var NUM_INSERTED = 0;
 /**
  * Simple db connection, table setup, and publisher methods
  */
-rethinkDb.connect({host: 'localhost', port: 28015}, function(err, conn) {
+rethinkDb.connect(CONNECT_CONFIG, function(err, conn) {
     if (err) { throw err; }
     connection = conn;
 

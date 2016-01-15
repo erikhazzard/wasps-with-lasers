@@ -62,7 +62,9 @@ if(cluster.isMaster){
     var times = [];
     var timesLatest = [];
 
-    logger.log('cluster-master', 'Starting up with ' +
+    logger.log('cluster-master', 
+        'Connecting to ' + CONNECT_CONFIG.host + ':' + CONNECT_CONFIG.port + ' || ' +
+        'Starting up with ' +
         NUM_CPUS + ' CPUs and ' + NUM_CONNECTIONS + ' connections per CPU ' +
         ' | ' + (NUM_CPUS * NUM_CONNECTIONS) + ' total queues');
 
