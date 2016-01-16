@@ -1,5 +1,8 @@
 # Benchmarks - Inserts
 
+NOTES: To run a proxy, use: /usr/bin/rethinkdb proxy --join 172.30.0.179 --bind all
+where the IP is the rethinkdb IP
+
 NOTES: To visualize output, copy data dump from data-output/FILE.json to ../util/data-output/data.json and run a local HTTP server from the ../util/ folder (e.g., `http-server -p 8021`), then open `http://localhost:8021/d3-viz.html`
 
 ## Test 1
