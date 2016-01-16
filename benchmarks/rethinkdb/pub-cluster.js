@@ -7,6 +7,7 @@
  * @module pub-cluster.js
  */
 
+var fs = require('fs');
 var d3 = require('d3');
 var _ = require('lodash');
 var uuid = require('uuid');
@@ -20,6 +21,7 @@ logger.transports.get('Console').property('showMeta', false);
 logger.options.groupsEnabled = ['master'];
 
 var chart = require('chart');
+var stats = require("stats-lite")
 
 var program = require('commander');
 program
@@ -82,6 +84,7 @@ if(cluster.isMaster){
     var minCurrent = Infinity;
     var maxCurrent = 0;
     var currentTimes = [];
+    var allTimes = [];
 
     var minAll = Infinity;
     var maxAll = 0;
@@ -96,6 +99,7 @@ if(cluster.isMaster){
             currentMessagesInserted += message.numMessages;
 
             currentTimes.push(message.time);
+            allTimes.push(message.time);
 
             if (message.time < minAll) { minAll = message.time; }
             if (message.time > maxAll) { maxAll = message.time; }
@@ -104,14 +108,20 @@ if(cluster.isMaster){
         });
     });
 
-    function printInformation () {
+    /**
+     * Calculates and prints data
+     * @param {Boolean} calculateAllData - specifies whether to do calculations
+     * on the entire data set. This is expensive, and done only by default
+     * when the process ends
+     */
+    function printInformation (calculateAllData) {
         currentIteration++;
 
         var table = new Table({
             head: ['#' + currentIteration, 'Current Interval', 'All']
         });
         table.push(
-            {'Inserts': [
+            {'Messages Inserted': [
                 d3.format(',')(currentMessagesInserted) + ' msg/s',
                 d3.format(',')(totalMessagesInserted)
             ]},
@@ -122,6 +132,22 @@ if(cluster.isMaster){
             {'Max': [
                 maxCurrent + 'ms',
                 maxAll + 'ms'
+            ]},
+            {'Mean': [
+                d3.round(stats.mean(currentTimes), 2) + 'ms',
+                calculateAllData ? d3.round(stats.mean(allTimes), 2) + 'ms' : '-'
+            ]},
+            {'Standard Deviation': [
+                d3.round(stats.stdev(currentTimes), 2) + 'ms',
+                calculateAllData ? d3.round(stats.stdev(allTimes), 2) + 'ms' : '-'
+            ]},
+            {'85 Percentile': [
+                d3.round(stats.percentile(currentTimes, 0.85), 2),
+                calculateAllData ? d3.round(stats.percentile(allTimes, 0.85), 2) : '-'
+            ]},
+            {'95 Percentile': [
+                d3.round(stats.percentile(currentTimes, 0.95), 2),
+                calculateAllData ? d3.round(stats.percentile(allTimes, 0.95), 2) : '-'
             ]}
         );
 
@@ -147,9 +173,25 @@ if(cluster.isMaster){
     function close () {
         // TODO: Put this in master; send a message instead in the worker
         var now = microtime.now();
-        printInformation();
+        printInformation(true);
         logger.log('master:close', '<<< CLOSING >>>');
         logger.log('master:close', 'Took ' + d3.format(',')((now - START) / 1000) + 'ms');
+
+
+        // write data
+        fs.writeFileSync(
+            // filename
+            'data-output/' +
+            ((new Date()).toLocaleTimeString()).replace(' ', '-') +
+            '__c' + NUM_CPUS + '-n' + NUM_MESSAGES + '-p' + NUM_PASSES + '.json',
+            // data
+            '[{"type": "RethinkDB", "c": ' + NUM_CPUS +
+                ', "n": ' + NUM_MESSAGES +
+                ', "timeout": ' + TIMEOUT +
+                ', "data": [' + allTimes + ']}]',
+            // encoding
+            'utf-8'
+        );
 
         return process.exit(1);
     }
@@ -215,7 +257,7 @@ if(cluster.isMaster){
                             numInserted: NUM_INSERTED,
                             roomId: uuid.v4()
                         }).run(connection, function (err, res) {
-                            if(err) { logger.log(err); }
+                            if(err) { logger.log('error:insert', err); }
                             NUM_INSERTED++;
                             return cb();
                         });

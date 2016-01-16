@@ -11,6 +11,7 @@
     "rethinkdb": "^2.2.1",
     "simple-statistics": "^1.0.1",
     "sparkly": "^3.1.2",
+    "stats-lite": "^2.0.0",
     "uuid": "^2.0.1"
   }
 }

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <style>
+        body { 
+            margin:0;position:fixed;top:0;right:0;bottom:0;left:0;
+            font-family: monaco, tahoma, arial;
+        }
+        svg { width:100%; height: 100% }
+        svg, path, line { 
+          shape-rendering: crispEdges;
+        }
+        .x.axis { 
+          font-size: .65em;
+        }
+        .axis path, .axis line {
+          stroke: #343434;
+          fill: none;
+        }
+        .axis line {
+          stroke-width: 0.5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 id='benchmark-type'> </h1>
+    <h3 id='benchmark-numbers'> </h3>
+
+  <script>
+    // Feel free to change or delete any of the code you see!
+    var svg = d3.select("body").append("svg")
+    var width = 600;
+    var height = 200;
+    var chartHeight = height - 100;
+
+    var startColor = '#FFFFFF';
+    var endColor = '#000000';
+    var field = 'income';
+
+    d3.json("data-output/data.json", function(response){
+        response = response[0];
+        var testType = response.type;
+        var numMessages = response.n;
+        var numProcesses = response.c;
+        var timeout = response.timeout;
+        var data = response.data.reverse().splice(0,200000);
+
+        console.log('Processing data...');
+        d3.select('#benchmark-type').html(testType);
+        d3.select('#benchmark-numbers').html(
+            d3.format(',')(data.length) + ' inserts | ' + 
+            timeout + 'ms timeout | ' + 
+            numMessages + ' inserts per timeout | ' +
+            numProcesses + ' processes | (target: ' + 
+            ((1000 / timeout) * numProcesses) + ' inserts per second )'
+        );
+
+        var extent = d3.extent(data);
+        // scales
+        var xScale = d3.scale.linear()
+            .domain(extent)
+            .range([0, width]);
+        var color_scale = d3.scale.linear()
+            .domain([extent[0], (extent[0] + extent[1]) / 2, extent[1]])
+            .range(['red','green', 'blue'])
+            .interpolate(d3.interpolateRgb);
+
+        // groups
+        var bg = svg.append('g');
+        var chart = svg.append('g');
+        var axis = svg.append('g');
+
+        bg.append('svg:rect')
+        .attr({
+            x: 0,
+            width: width,
+            y: 0,
+            height: chartHeight
+        })
+        .style({
+            fill: startColor
+        });
+
+        // LINES
+        setTimeout(function() { requestAnimationFrame(function () {
+            console.log('Rendering chart...');
+            var lines = chart.selectAll('line').data(data);
+
+            // draw line for each item
+            lines.enter().append('svg:line')
+            .attr({
+                x1: function(d,i){ return xScale(+d); },
+                x2: function(d,i){ return xScale(+d); },
+                y1: 0,
+                y2: chartHeight
+            })
+            .style({
+                stroke: endColor,
+                'stroke-width': '0.5px',
+                'stroke-opacity': 0.05
+            });
+
+            // draw axis
+            var xAxis = d3.svg.axis()
+                .scale(xScale)
+                //.ticks(_.keys(data).length)
+                .tickFormat(function(d){ return d3.round(d, 2) + 'ms'; })
+                .orient("bottom");
+
+            var xAxisGroup = axis.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + chartHeight + ")")
+                .call(xAxis);
+
+        }); }, 200);
+
+    });
+  </script>
+</body>
