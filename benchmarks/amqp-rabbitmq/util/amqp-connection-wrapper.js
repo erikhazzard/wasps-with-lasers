@@ -6,7 +6,8 @@ var amqp = require('amqplib/callback_api');
 var defaultAmqpOptions = {host: 'amqp://localhost'};
 
 // for wasp testing
-defaultAmqpOptions.host = 'amqp://172.30.0.179';
+// TODO: get from env or pass in
+// defaultAmqpOptions.host = 'amqp://172.30.0.179';
 //defaultAmqpOptions.host = 'amqp://52.90.230.226:5672';
 //defaultAmqpOptions.host = 'amqp://guest:guest@52.90.230.226:5672';
 

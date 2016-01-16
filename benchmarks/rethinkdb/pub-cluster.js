@@ -1,10 +1,25 @@
-var _ = require('lodash');
+"use strict";
+
+/**
+ * Tests publishing using multiple processes
+ *
+ *
+ * @module pub-cluster.js
+ */
+
 var d3 = require('d3');
+var _ = require('lodash');
+var uuid = require('uuid');
 var async = require('async');
+var logger = require('bragi');
 var cluster = require('cluster');
+var Table = require('cli-table');
 var microtime = require('microtime');
 var rethinkDb = require('rethinkdb');
-var connection = null;
+logger.transports.get('Console').property('showMeta', false);
+logger.options.groupsEnabled = ['master'];
+
+var chart = require('chart');
 
 var program = require('commander');
 program
@@ -13,18 +28,23 @@ program
     .option('-n, --numMessagesPerSecond [numMessagesPerSecond]', 'How many messages to publish per second')
     .option('-t, --timeout [timeout]', 'Length of time before publishing next message batch (in milliseconds, defaults to 1000, or 1 second)')
     .option('-p, --numPasses [numPasses]', 'If provided, will stop after n passes (after messages have been published p times)')
+    .option('-d, --database [database]', 'RethinkBD db (`test` by default)')
+    .option('-t, --table [table]', 'RethinkBD table name (`messages` by default)')
     .option('-h, --host [host]', 'RethinkBD host')
     .option('-p, --port [port]', 'RethinkBD port')
     .parse(process.argv);
-/**
- * To publish more than 1 per second, increase this value. Note that the more
- * clients connected to the change feed, the fewer messages / sec can be
- * published with this
- */
+
+// To publish more than 1 per second, increase this value. Note that the more
+// clients connected to the change feed, the fewer messages / sec can be
+// published with this
 var NUM_MESSAGES = isNaN(+program.numMessagesPerSecond) ? 1 : +program.numMessagesPerSecond;
 var NUM_PASSES = isNaN(+program.numPasses) ? Infinity : +program.numPasses;
 var TIMEOUT = isNaN(+program.timeout) ? 1000 : +program.timeout;
-var NUM_CPUS = isNaN(+program.numCPUs) ? 8 : +program.numCPUs;
+// use 1 process by defualt
+var NUM_CPUS = isNaN(+program.numCPUs) ? 1 : +program.numCPUs;
+
+var TABLE_NAME = program.table || 'messages';
+var DATABASE = program.database || 'test';
 
 var CONNECT_CONFIG = {host: 'localhost', port: 28015};
 if (program.host) { CONNECT_CONFIG.host = program.host; }
@@ -34,13 +54,16 @@ var TABLE_NAME = 'messages'; // needs to match sub-cluster.js
 var DURABILITY = 'soft';
 var START = microtime.now();
 
-console.log('Running with ' + NUM_MESSAGES + ' messages / ' +
-    TIMEOUT + 'ms | ' + NUM_PASSES + ' passes' );
-
-var CUR_PASS = 0;
-var NUM_INSERTED = 0;
+/**
+ *
+ * Start it
+ *
+ */
 
 if(cluster.isMaster){
+    logger.log('master', 'Running with ' + NUM_MESSAGES + ' messages / ' +
+        TIMEOUT + 'ms | ' + NUM_PASSES + ' passes' );
+
     /**
      *
      * Master - fork processes
@@ -51,10 +74,101 @@ if(cluster.isMaster){
         workers.push(cluster.fork());
     }
 
+    /**
+     * handle messages from worker
+     */
+    var currentMessagesInserted = 0;
+    var currentIteration = 0;
+    var minCurrent = Infinity;
+    var maxCurrent = 0;
+    var currentTimes = [];
+
+    var minAll = Infinity;
+    var maxAll = 0;
+    var totalMessagesInserted = 0;
+
+    _.each(workers, function (worker) {
+        worker.on('message', function(message) {
+            // logger.log('master', 'message: %j', message);
+
+            // track values
+            totalMessagesInserted += message.numMessages;
+            currentMessagesInserted += message.numMessages;
+
+            currentTimes.push(message.time);
+
+            if (message.time < minAll) { minAll = message.time; }
+            if (message.time > maxAll) { maxAll = message.time; }
+            if (message.time < minCurrent) { minCurrent = message.time; }
+            if (message.time > maxCurrent) { maxCurrent = message.time; }
+        });
+    });
+
+    function printInformation () {
+        currentIteration++;
+
+        var table = new Table({
+            head: ['#' + currentIteration, 'Current Interval', 'All']
+        });
+        table.push(
+            {'Inserts': [
+                d3.format(',')(currentMessagesInserted) + ' msg/s',
+                d3.format(',')(totalMessagesInserted)
+            ]},
+            {'Min': [
+                minCurrent + 'ms',
+                minAll + 'ms'
+            ]},
+            {'Max': [
+                maxCurrent + 'ms',
+                maxAll + 'ms'
+            ]}
+        );
+
+        logger.log('master', '[' + (new Date()).toLocaleTimeString() +
+        '] Stats \n' + table.toString());
+        console.log(chart(currentTimes, { width: 80, height: 14 }));
+
+        // reset values
+        currentMessagesInserted = 0;
+        minCurrent = Infinity;
+        maxCurrent = 0;
+        currentTimes = [];
+    }
+
+    setTimeout(function () {
+        // Log stats every second
+        setInterval(printInformation, 1000);
+    }, 200);
+
+    /**
+     * Handle closing
+     */
+    function close () {
+        // TODO: Put this in master; send a message instead in the worker
+        var now = microtime.now();
+        printInformation();
+        logger.log('master:close', '<<< CLOSING >>>');
+        logger.log('master:close', 'Took ' + d3.format(',')((now - START) / 1000) + 'ms');
+
+        return process.exit(1);
+    }
+    process.on('SIGINT', close);
+    process.on('SIGHUP', close);
+    process.on('SIGTERM', close);
+    process.on('uncaughtException', function (err) {
+        logger.log('error:master', 'uncaught error: ' + err.stack);
+        return close();
+    });
+
 } else {
     /**
      * Simple db connection, table setup, and publisher methods
      */
+    var CUR_PASS = 0;
+    var NUM_INSERTED = 0;
+
+    var connection = null;
     rethinkDb.connect(CONNECT_CONFIG, function(err, conn) {
         if (err) { throw err; }
         connection = conn;
@@ -63,10 +177,16 @@ if(cluster.isMaster){
             function createTable (cb) {
                 // try to create table if it doesn't exist
                 try {
-                rethinkDb.db('test')
-                    .tableCreate(TABLE_NAME, {durability: DURABILITY, primaryKey: 'roomId'})
+                rethinkDb.db(DATABASE)
+                    .tableCreate(TABLE_NAME, {
+                        durability: DURABILITY,
+                        primaryKey: 'roomId'
+                    })
                     .run(connection, function(err, result) {
-                        if (err) { }
+                        if (err) {
+                            // most likely we will see a table already exists
+                            // error here
+                        }
                         return cb();
                     });
                 } catch (err) {
@@ -75,31 +195,44 @@ if(cluster.isMaster){
             }
         ],
         function setupPublisher (cb) {
+            var workerId = process.pid;
             var pubInterval = setInterval(function () {
                 // insert data
                 var start = microtime.now();
                 CUR_PASS++;
 
-                async.eachLimit(_.range(NUM_MESSAGES), 10, function (i, cb) {
-                    var startSingleMessage = microtime.now();
-                    rethinkDb.table('messages').insert({
-                        date: microtime.now(),
-                        dateTime: new Date(),
-                        message: "Hello world",
-                        username: (Math.random()).toString(16),
-                        index: i,
-                        roomId: i % 1000
-                    }).run(connection, function (err, res) {
-                        if(err) { console.log(err); }
-                        NUM_INSERTED++;
-                        return cb();
+                async.eachLimit(_.range(NUM_MESSAGES), 20, function (i, cb) {
+                    setImmediate(() => {
+                        var startSingleMessage = microtime.now();
+
+                        rethinkDb.table(TABLE_NAME).insert({
+                            date: startSingleMessage,
+                            dateTime: Date.now(),
+                            message: 'Hello world',
+                            username: 'pub-test',
+                            workerId: workerId,
+                            pass: CUR_PASS,
+                            numInserted: NUM_INSERTED,
+                            roomId: uuid.v4()
+                        }).run(connection, function (err, res) {
+                            if(err) { logger.log(err); }
+                            NUM_INSERTED++;
+                            return cb();
+                        });
                     });
-                }
-                , function () {
-                    console.log('publish/done-with-batch',
+                },
+                function () {
+                    var diff = (microtime.now() - start) / 1000;
+                    logger.log('publish/done-with-batch|' + workerId,
                         '<' + CUR_PASS + '> [' + NUM_INSERTED + '] ' +
                         'Inserted [' + d3.format(',')(NUM_INSERTED) + '] messages. ',
-                        'Done in ' + ((microtime.now() - start) / 1000) + 'ms');
+                        'Done in ' + (diff) + 'ms');
+
+                    process.send({
+                        numMessages: NUM_MESSAGES,
+                        numPasses: CUR_PASS,
+                        time: diff
+                    });
                 });
 
                 if (CUR_PASS >= NUM_PASSES) {
@@ -111,21 +244,4 @@ if(cluster.isMaster){
             }, TIMEOUT);
         });
     });
-
-    function close () {
-        // TODO: Put this in master; send a message instead in the worker
-        var now = microtime.now();
-        console.log('<<< CLOSING >>>');
-        console.log('Took ' + (now - START) / 1000 + 'ms');
-        console.log('Inserted: ' + NUM_INSERTED + ' messages | ' +
-        NUM_PASSES + ' passes completed');
-
-        // console.log((now / 1000 / 60 ) + ' messages / sec');
-
-        return process.exit(1);
-    }
-    process.on('SIGINT', close);
-    process.on('SIGHUP', close);
-    process.on('SIGTERM', close);
-    process.on('uncaughtException', close);
 }
