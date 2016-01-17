@@ -84,10 +84,12 @@ if(cluster.isMaster){
         logger.log('cluster-master', '\t MAX (current): ' + ss.max(timesLatest) + 'ms');
         logger.log('cluster-master', '\t MEAN (current): ' + ss.mean(timesLatest) + 'ms');
         logger.log('cluster-master', '\t HARMONIC MEAN (current): ' + ss.harmonicMean(timesLatest) + 'ms');
+        /*
         logger.log('cluster-master', '\t MIN: ' + ss.min(times) + 'ms');
         logger.log('cluster-master', '\t MAX: ' + ss.max(times) + 'ms');
         logger.log('cluster-master', '\t MEAN: ' + ss.mean(times) + 'ms');
         logger.log('cluster-master', '\t HARMONIC MEAN: ' + ss.harmonicMean(times) + 'ms');
+        */
 
         totalMessagesReceivedLatest = 0;
         timesLatest = [];

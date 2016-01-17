@@ -177,8 +177,9 @@ if(cluster.isMaster){
         logger.log('master:close', '<<< CLOSING >>>');
         logger.log('master:close', 'Took ' + d3.format(',')((now - START) / 1000) + 'ms');
 
-
         // write data
+        if (!fs.existsSync('data-output')){ fs.mkdirSync('data-output'); }
+
         fs.writeFileSync(
             // filename
             'data-output/' +
