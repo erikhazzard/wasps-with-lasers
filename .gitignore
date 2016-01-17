@@ -8,5 +8,6 @@ node_modules
 npm-debug.log
 benchmarks/rethinkdb/log_file
 ipcfile
-*/data-output/*
+data-output
+data-output/*
 data-output/*.json
