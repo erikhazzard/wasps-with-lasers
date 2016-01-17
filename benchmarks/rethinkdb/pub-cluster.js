@@ -21,7 +21,7 @@ logger.transports.get('Console').property('showMeta', false);
 logger.options.groupsEnabled = ['master'];
 
 var chart = require('chart');
-var stats = require("stats-lite")
+var stats = require('stats-lite');
 
 var program = require('commander');
 program
@@ -30,10 +30,10 @@ program
     .option('-n, --numMessagesPerSecond [numMessagesPerSecond]', 'How many messages to publish per second')
     .option('-t, --timeout [timeout]', 'Length of time before publishing next message batch (in milliseconds, defaults to 1000, or 1 second)')
     .option('-p, --numPasses [numPasses]', 'If provided, will stop after n passes (after messages have been published p times)')
-    .option('-d, --database [database]', 'RethinkBD db (`test` by default)')
-    .option('-t, --table [table]', 'RethinkBD table name (`messages` by default)')
-    .option('-h, --host [host]', 'RethinkBD host')
-    .option('-p, --port [port]', 'RethinkBD port')
+    .option('-D, --database <database>', 'RethinkBD db (`test` by default)')
+    .option('-T, --table <table>', 'RethinkBD table name (`messages` by default)')
+    .option('-H, --host <host>', 'RethinkBD host')
+    .option('-P, --port <port>', 'RethinkBD port')
     .parse(process.argv);
 
 // To publish more than 1 per second, increase this value. Note that the more
@@ -52,7 +52,6 @@ var CONNECT_CONFIG = {host: 'localhost', port: 28015};
 if (program.host) { CONNECT_CONFIG.host = program.host; }
 if (program.port) { CONNECT_CONFIG.port = program.port; }
 
-var TABLE_NAME = 'messages'; // needs to match sub-cluster.js
 var DURABILITY = 'soft';
 var START = microtime.now();
 
@@ -64,7 +63,8 @@ var START = microtime.now();
 
 if(cluster.isMaster){
     logger.log('master', 'Running with ' + NUM_MESSAGES + ' messages / ' +
-        TIMEOUT + 'ms | ' + NUM_PASSES + ' passes' );
+        TIMEOUT + 'ms | ' + NUM_PASSES + ' passes | ' +
+        'DB: ' + DATABASE + ' | on table: ' + TABLE_NAME);
 
     /**
      *

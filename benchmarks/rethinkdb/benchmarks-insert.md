@@ -33,3 +33,41 @@ Fairly steady 3k inserts per second
 │ 95 Percentile      │                  │ 94.84      │
 └────────────────────┴──────────────────┴────────────┘
 
+
+## Test 2
+### Setup
+Two rethinkdb servers, once instance each. Two shards (one per server), 
+four replicas (two per server)
+
+
+#### Single client
+One client (in aws network)
+`node pub-cluster.js -c 30 -n 1 -t 4` 
+
+RethinkDB cluster status: 7k messages / sec very steady.
+
+┌────────────────────┬──────────────────┬──────────┐
+│ #22                │ Current Interval │ All      │
+├────────────────────┼──────────────────┼──────────┤
+│ Messages Inserted  │                  │ 165,911  │
+├────────────────────┼──────────────────┼──────────┤
+│ Min                │                  │ 1.123ms  │
+├────────────────────┼──────────────────┼──────────┤
+│ Max                │                  │ 205.53ms │
+├────────────────────┼──────────────────┼──────────┤
+│ Mean               │                  │ 7.46ms   │
+├────────────────────┼──────────────────┼──────────┤
+│ Standard Deviation │                  │ 17.81ms  │
+├────────────────────┼──────────────────┼──────────┤
+│ 85 Percentile      │                  │ 8.99     │
+├────────────────────┼──────────────────┼──────────┤
+│ 95 Percentile      │                  │ 33.27    │
+└────────────────────┴──────────────────┴──────────┘
+
+#### Two clients at once
+Two clients (in aws network), each running:
+`node pub-cluster.js -c 30 -n 1 -t 4` 
+
+After running for a bit, the proxy stops working. No more messages get sent.
+Heartbeat time outs: error: Heartbeat timeout, killing connection to peer 172.30.0.178:29015
+Caps out at 6.2k writes per second - interface stops responding. Even after publishers stop inserting messages
