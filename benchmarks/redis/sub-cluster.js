@@ -68,6 +68,10 @@ if(cluster.isMaster){
     var numRows = 0;
     var times = [];
     var timesLatest = [];
+    var minCurrent = Infinity;
+    var maxCurrent = 0;
+    var minAll = Infinity;
+    var maxAll = 0;
 
     logger.log('cluster-master', 
         'Connecting to ' + CONNECT_CONFIG.host + ':' + CONNECT_CONFIG.port + ' || ' +
@@ -77,11 +81,16 @@ if(cluster.isMaster){
 
     _.each(workers, function (worker) {
         worker.on('message', function(message) {
-            numRows += message.rowLength;
             totalMessagesReceived++;
             totalMessagesReceivedLatest++;
-            times.push(message.time);
             timesLatest.push(message.time);
+            if (message.time < minCurrent) { minCurrent = message.time; }
+            if (message.time > maxCurrent) { maxCurrent = message.time; }
+            if (message.time < minAll) { minAll = message.time; }
+            if (message.time > maxAll) { maxAll = message.time; }
+
+            // TODO: add this back in - removed now for performance
+            // times.push(message.time);
         });
     });
 
@@ -90,17 +99,13 @@ if(cluster.isMaster){
         logger.log('cluster-master', 'Got ' +
            d3.format(',')(totalMessagesReceivedLatest) + ' messages / sec - ' +
             d3.format(',')(totalMessagesReceived) + '> total');
+        logger.log('cluster-master', '\t MIN (ALL): ' + minAll + 'ms');
+        logger.log('cluster-master', '\t MAX (ALL: ' + maxAll + 'ms');
+
         logger.log('cluster-master', '\t MIN (current): ' + ss.min(timesLatest) + 'ms');
         logger.log('cluster-master', '\t MAX (current): ' + ss.max(timesLatest) + 'ms');
         logger.log('cluster-master', '\t MEAN (current): ' + ss.mean(timesLatest) + 'ms');
         logger.log('cluster-master', '\t HARMONIC MEAN (current): ' + ss.harmonicMean(timesLatest) + 'ms');
-
-        /*
-        logger.log('cluster-master', '\t MIN: ' + ss.min(times) + 'ms');
-        logger.log('cluster-master', '\t MAX: ' + ss.max(times) + 'ms');
-        logger.log('cluster-master', '\t MEAN: ' + ss.mean(times) + 'ms');
-        logger.log('cluster-master', '\t HARMONIC MEAN: ' + ss.harmonicMean(times) + 'ms');
-        */
 
         totalMessagesReceivedLatest = 0;
         timesLatest = [];
@@ -109,10 +114,9 @@ if(cluster.isMaster){
 
     function close () {
         logger.log('cluster-master', 'Total received: ' + totalMessagesReceived);
-        logger.log('cluster-master', '\t MIN: ' + ss.min(times) + 'ms');
-        logger.log('cluster-master', '\t MAX: ' + ss.max(times) + 'ms');
+        logger.log('cluster-master', '\t MIN: ' + minAll + 'ms');
+        logger.log('cluster-master', '\t MAX: ' + maxAll + 'ms');
         logger.log('cluster-master', '\t MEAN: ' + ss.mean(times) + 'ms');
-        logger.log('cluster-master', '\t HARMONIC MEAN: ' + ss.harmonicMean(times) + 'ms');
 
         return process.exit(1);
     }
