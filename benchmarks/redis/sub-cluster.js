@@ -166,7 +166,8 @@ if(cluster.isMaster){
         }, {
             port: 7002,
             host: CONNECT_CONFIG.host
-        });
+        }
+        ]);
 
     } else {
         client = new Redis({
