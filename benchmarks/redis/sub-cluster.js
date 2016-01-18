@@ -161,66 +161,87 @@ if(cluster.isMaster){
 
     var client = new Redis.Cluster([{
         port: 7000,
-        host: CONNECT_CONFIG.host
+        // host: CONNECT_CONFIG.host
+        host: '52.90.138.7'
     }, {
         port: 7001,
-        host: CONNECT_CONFIG.host
+        // host: CONNECT_CONFIG.host
+        host: '52.90.138.7'
     }, {
         port: 7002,
-        host: CONNECT_CONFIG.host
-    } ]);
+        // host: CONNECT_CONFIG.host
+        host: '52.90.138.7'
+    }, {
+        port: 7003,
+        // host: CONNECT_CONFIG.host
+        host: '52.90.138.7'
+    }, {
+        port: 7004,
+        // host: CONNECT_CONFIG.host
+        host: '52.90.138.7'
+    }, {
+        port: 7005,
+        // host: CONNECT_CONFIG.host
+        host: '52.90.138.7'
+    }
+    ]);
 
-
-    setTimeout(() => {
-    async.eachLimit(
-        _.range(NUM_CONNECTIONS),
-        // if we set to much higher, rethink will always throw connection errors
-        20,
-        function setupConnection (connectionIndex, cb) {
-            var messagesReceived = 0;
-            var previousId = -1;
-            var times = [];
-            var minTime = Infinity;
-            var maxTime = 0;
-
-            // spit out progress at 10 % intervals
-            if (connectionIndex > 1 && connectionIndex % (NUM_CONNECTIONS / 10) === 0) {
-                logger.log('worker:bound:' + process.pid,
-                '<' + ((connectionIndex / NUM_CONNECTIONS) * 100) +
-                '% done> Bound to queue. Waiting for messages...');
-            }
-
-            client.on('message', function (channel, message) {
-                var diff = (Date.now() * 1000 - +message) / 1000;
-                messagesReceived++;
-
-                console.log(diff);
-                times.push(diff);
-                if (diff < minTime) { minTime = diff; }
-                if (diff > maxTime) { maxTime = diff; }
-
-                if (messagesReceived % 500 === 0) {
-                    process.send({
-                        messagesReceived: messagesReceived,
-                        times: times,
-                        minTime: minTime,
-                        maxTime: maxTime
-                    });
-
-                    times = [];
-                    minTime = Infinity;
-                    maxTime = 0;
-                }
-            });
-
-            // could sub to multiple rooms here
-            client.subscribe(TABLE_NAME);
-
-            return setTimeout(cb, Math.random() * 400 | 0);
-
-    }, function (){
-        logger.log('worker:bound:' + process.pid,
-        'Done! Waiting for messages');
+    client.on('error', function (err) { console.log(err); });
+    client.on('disconnect', function (err) { console.log('disconnected'); });
+    client.on('reconnect', function (err) { console.log('reconnect'); });
+    client.on('connect', function () { 
+        console.log('connected');
     });
-    }, 1000);
+
+    setTimeout(function () {
+        async.eachLimit(
+            _.range(NUM_CONNECTIONS),
+            // if we set to much higher, rethink will always throw connection errors
+            20,
+            function setupConnection (connectionIndex, cb) {
+                var messagesReceived = 0;
+                var previousId = -1;
+                var times = [];
+                var minTime = Infinity;
+                var maxTime = 0;
+
+                // spit out progress at 10 % intervals
+                if (connectionIndex > 1 && connectionIndex % (NUM_CONNECTIONS / 10) === 0) {
+                    logger.log('worker:bound:' + process.pid,
+                    '<' + ((connectionIndex / NUM_CONNECTIONS) * 100) +
+                    '% done> Bound to queue. Waiting for messages...');
+                }
+
+                client.on('message', function (channel, message) {
+                    var diff = (Date.now() * 1000 - +message) / 1000;
+                    messagesReceived++;
+
+                    times.push(diff);
+                    if (diff < minTime) { minTime = diff; }
+                    if (diff > maxTime) { maxTime = diff; }
+
+                    if (messagesReceived % 500 === 0) {
+                        process.send({
+                            messagesReceived: messagesReceived,
+                            times: times,
+                            minTime: minTime,
+                            maxTime: maxTime
+                        });
+
+                        times = [];
+                        minTime = Infinity;
+                        maxTime = 0;
+                    }
+                });
+
+                // could sub to multiple rooms here
+                client.subscribe(TABLE_NAME);
+
+                return setTimeout(cb, Math.random() * 400 | 0);
+
+        }, function (){
+            logger.log('worker:bound:' + process.pid,
+            'Done! Waiting for messages');
+        });
+    }, 5000);
 }
