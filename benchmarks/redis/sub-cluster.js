@@ -73,7 +73,7 @@ if(cluster.isMaster){
     var minAll = Infinity;
     var maxAll = 0;
 
-    logger.log('cluster-master', 
+    logger.log('cluster-master',
         'Connecting to ' + CONNECT_CONFIG.host + ':' + CONNECT_CONFIG.port + ' || ' +
         'Starting up with ' +
         NUM_CPUS + ' CPUs and ' + NUM_CONNECTIONS + ' connections per CPU ' +
@@ -102,10 +102,9 @@ if(cluster.isMaster){
         logger.log('cluster-master', '\t MIN (ALL): ' + minAll + 'ms');
         logger.log('cluster-master', '\t MAX (ALL: ' + maxAll + 'ms');
 
-        logger.log('cluster-master', '\t MIN (current): ' + ss.min(timesLatest) + 'ms');
-        logger.log('cluster-master', '\t MAX (current): ' + ss.max(timesLatest) + 'ms');
-        logger.log('cluster-master', '\t MEAN (current): ' + ss.mean(timesLatest) + 'ms');
-        logger.log('cluster-master', '\t HARMONIC MEAN (current): ' + ss.harmonicMean(timesLatest) + 'ms');
+        logger.log('cluster-master', '\t MIN (current): ' + minCurrent + 'ms');
+        logger.log('cluster-master', '\t MAX (current): ' + maxCurrent + 'ms');
+        // logger.log('cluster-master', '\t MEAN (current): ' + ss.mean(timesLatest) + 'ms');
 
         totalMessagesReceivedLatest = 0;
         timesLatest = [];
