@@ -27,7 +27,3 @@ Fast, but how is reliability?
 See ZeroMQ. Maybe is a bit faster?
 
 ## Redis
-Redis has a built in Pub/Sub system. This can be tested, but also let's test some
-alternatives and see where the tradeoffs are, maybe even some wacky things:
-    * Pulling a ZSETs every 1/n seconds, using ZRANGEBYSCORE to get new messages
-    * Use LRANGE with offsets - has a bad tradeoff of duplicating messages and missing messages if more messages were received than from a range

@@ -40,7 +40,9 @@ var pubInterval = setInterval(() => {
     curPass++;
 
     for (i = NUM_MESSAGES; i > 0; i--) {
-        console.log('publish', '[' + msgId + '] published message');
+        if (i % 100 === 0) {
+            console.log('publish', '[' + msgId + '] published message');
+        }
         socket.send(ROUTING_KEY + ' ' + msgId + ' ' + microtime.now());
         msgId++;
     }

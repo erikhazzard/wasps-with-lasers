@@ -63,6 +63,8 @@ net.ipv4.ip_local_port_range = 1024 65000
 net.ipv4.tcp_tw_reuse = 1
 net.inet.ip.portrange.first=32768
 
+vm.overcommit_memory = 1
+
 net.core.somaxconn = 16384
 net.core.rmem_max = 16777216
 net.core.wmem_max = 16777216
@@ -104,6 +106,9 @@ until ping -nq -c3 8.8.8.8; do
 done
 ntpdate -s time.nist.gov
 /etc/init.d/ntp start )&
+
+# For redis
+echo never > /sys/kernel/mm/transparent_hugepage/enabled
 
 exit 0
 ```
