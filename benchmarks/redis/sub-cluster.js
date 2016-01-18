@@ -176,35 +176,26 @@ if(cluster.isMaster){
                 '% done> Bound to queue. Waiting for messages...');
             }
 
-            setInterval(function () {
-                process.send({
-                    messagesReceived: messagesReceived,
-                    times: times,
-                    minTime: minTime,
-                    maxTime: maxTime
-                });
-
-                times = [];
-                minTime = Infinity;
-                maxTime = 0;
-            }, 450);
-
             client.on('message', function (channel, message) {
-                var diff = (microtime.now() - +message) / 1000;
+                var diff = (Date.now() * 1000 - +message) / 1000;
                 messagesReceived++;
 
                 times.push(diff);
                 if (diff < minTime) { minTime = diff; }
                 if (diff > maxTime) { maxTime = diff; }
 
-                // TEST: Sample
+                if (messagesReceived % 500 === 0) {
+                    process.send({
+                        messagesReceived: messagesReceived,
+                        times: times,
+                        minTime: minTime,
+                        maxTime: maxTime
+                    });
 
-                /* Send to master
-                process.send({
-                    messagesReceived: messagesReceived,
-                    time: diff
-                });
-                */
+                    times = [];
+                    minTime = Infinity;
+                    maxTime = 0;
+                }
             });
 
             // could sub to multiple rooms here

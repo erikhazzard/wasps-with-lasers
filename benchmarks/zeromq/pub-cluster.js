@@ -1,7 +1,8 @@
+// NOTE: Can't cluster because of single bind (need XPUB for that)
+//
 var zeromq = require('zmq');
 var microtime = require('microtime');
 // ZMQ config
-var socket = zeromq.socket('pub');
 
 var program = require('commander');
 program
@@ -21,15 +22,18 @@ var NUM_PASSES = isNaN(+program.numPasses) ? Infinity : +program.numPasses;
 var TIMEOUT = isNaN(+program.timeout) ? 1000 : +program.timeout;
 
 var PORT = program.hostSocket ? program.hostSocket : 'tcp://127.0.0.1:2002';
-socket.bindSync(PORT);
 
 var ROUTING_KEY = 'roomId1';
 
-var msgId = 0;
-var curPass = 0;
+var socket = zeromq.socket('pub');
+socket.bindSync(PORT);
+
 
 console.log('Running with ' + NUM_MESSAGES + ' messages / ' +
-    TIMEOUT + 'ms | ' + NUM_PASSES + ' passes to: ' + PORT);
+TIMEOUT + 'ms | ' + NUM_PASSES + ' passes to: ' + PORT);
+
+var msgId = 0;
+var curPass = 0;
 
 setTimeout(() => {
 /**
