@@ -27,3 +27,9 @@ Fast, but how is reliability?
 See ZeroMQ. Maybe is a bit faster?
 
 ## Redis
+
+# TODO
+
+* Command interface to show sample of data in realtime with line charts
+* Have workers send message every ~1 second to master. Don't use process.send() on
+each message (overloads worker)
