@@ -151,20 +151,24 @@ if(cluster.isMaster){
 
     // ioredis
     var Redis = require('ioredis');
-    /** single
+
+    /**
     var client = new Redis({
         port: CONNECT_CONFIG.port,
-        host: CONNECT_CONFIG.host,
-        db: 10
+        host: CONNECT_CONFIG.host
     });
     */
+
     var client = new Redis.Cluster([{
-        port: 30001,
+        port: 7000,
         host: CONNECT_CONFIG.host
     }, {
-        port: 30001,
+        port: 7001,
         host: CONNECT_CONFIG.host
-    }]);
+    }, {
+        port: 7002,
+        host: CONNECT_CONFIG.host
+    } ]);
 
 
     setTimeout(() => {
@@ -190,6 +194,7 @@ if(cluster.isMaster){
                 var diff = (Date.now() * 1000 - +message) / 1000;
                 messagesReceived++;
 
+                console.log(diff);
                 times.push(diff);
                 if (diff < minTime) { minTime = diff; }
                 if (diff > maxTime) { maxTime = diff; }
