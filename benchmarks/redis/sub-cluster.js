@@ -109,6 +109,8 @@ if(cluster.isMaster){
         totalMessagesReceivedLatest = 0;
         timesLatest = [];
         numRows = 0;
+        minCurrent = Infinity;
+        maxCurrent = 0;
     }, 1000);
 
     function close () {
@@ -174,10 +176,20 @@ if(cluster.isMaster){
                 var diff = (microtime.now() - +message) / 1000;
                 messagesReceived++;
 
+                // TEST: Sample
+                if (messagesReceived % 3 === 0) {
+                    process.send({
+                        messagesReceived: messagesReceived,
+                        time: diff
+                    });
+                }
+
+                /* Send to master
                 process.send({
                     messagesReceived: messagesReceived,
                     time: diff
                 });
+                */
             });
 
             // could sub to multiple rooms here
