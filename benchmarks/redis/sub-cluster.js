@@ -20,7 +20,7 @@ var microtime = require('microtime');
 var ss = require('simple-statistics');
 logger.transports.get('Console').property('showMeta', false);
 
-var CONNECT_CONFIG = {host: 'localhost', port: 28015};
+var CONNECT_CONFIG = {host: 'localhost', port: 6379};
 
 /**
  * CONFIG

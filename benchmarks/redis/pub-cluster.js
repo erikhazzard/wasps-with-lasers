@@ -46,7 +46,7 @@ var NUM_CPUS = isNaN(+program.numCPUs) ? 1 : +program.numCPUs;
 var TABLE_NAME = program.table || 'messages';
 var DATABASE = program.database || 'test';
 
-var CONNECT_CONFIG = {host: 'localhost', port: 28015};
+var CONNECT_CONFIG = {host: 'localhost', port: 6379};
 if (program.host) { CONNECT_CONFIG.host = program.host; }
 if (program.port) { CONNECT_CONFIG.port = program.port; }
 CONNECT_CONFIG.host = CONNECT_CONFIG.host || 'localhost';
