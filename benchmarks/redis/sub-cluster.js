@@ -43,6 +43,7 @@ program
     .option('-c, --numCPUs [numCPUs]', 'How many CPUs')
     .option('-H, --host [host]', 'RethinkBD host')
     .option('-P, --port [port]', 'RethinkBD port')
+    .option('-C, --cluster [cluster]', 'Should cluster? True or false')
     .parse(process.argv);
 
 var NUM_CONNECTIONS = isNaN(+program.numConnections) ? 1 : +program.numConnections;
@@ -51,6 +52,8 @@ if (program.host) { CONNECT_CONFIG.host = program.host; }
 if (program.port) { CONNECT_CONFIG.port = program.port; }
 CONNECT_CONFIG.host = CONNECT_CONFIG.host || 'localhost';
 CONNECT_CONFIG.port = CONNECT_CONFIG.port || 6379;
+var USE_CLUSTER = false;
+if (program.cluster || ('' + program.cluster).toLowerCase() === 'true') { USE_CLUSTER = true; }
 
 if(cluster.isMaster){
     /**
@@ -151,40 +154,26 @@ if(cluster.isMaster){
 
     // ioredis
     var Redis = require('ioredis');
+    var client;
 
-    /**
-    var client = new Redis({
-        port: CONNECT_CONFIG.port,
-        host: CONNECT_CONFIG.host
-    });
-    */
+    if (USE_CLUSTER) {
+        client = new Redis.Cluster([{
+            port: 7000,
+            host: CONNECT_CONFIG.host
+        }, {
+            port: 7001,
+            host: CONNECT_CONFIG.host
+        }, {
+            port: 7002,
+            host: CONNECT_CONFIG.host
+        });
 
-    var client = new Redis.Cluster([{
-        port: 7000,
-        // host: CONNECT_CONFIG.host
-        host: '52.90.138.7'
-    }, {
-        port: 7001,
-        // host: CONNECT_CONFIG.host
-        host: '52.90.138.7'
-    }, {
-        port: 7002,
-        // host: CONNECT_CONFIG.host
-        host: '52.90.138.7'
-    }, {
-        port: 7003,
-        // host: CONNECT_CONFIG.host
-        host: '52.90.138.7'
-    }, {
-        port: 7004,
-        // host: CONNECT_CONFIG.host
-        host: '52.90.138.7'
-    }, {
-        port: 7005,
-        // host: CONNECT_CONFIG.host
-        host: '52.90.138.7'
+    } else {
+        client = new Redis({
+            port: CONNECT_CONFIG.port,
+            host: CONNECT_CONFIG.host
+        });
     }
-    ]);
 
     client.on('error', function (err) { console.log(err); });
     client.on('disconnect', function (err) { console.log('disconnected'); });

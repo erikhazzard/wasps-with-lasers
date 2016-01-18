@@ -32,6 +32,7 @@ program
     .option('-T, --table <table>', 'RethinkBD table name (`messages` by default)')
     .option('-H, --host <host>', 'RethinkBD host')
     .option('-P, --port <port>', 'RethinkBD port')
+    .option('-C, --cluster [cluster]', 'Should cluster? True or false')
     .parse(process.argv);
 
 // To publish more than 1 per second, increase this value. Note that the more
@@ -51,6 +52,8 @@ if (program.host) { CONNECT_CONFIG.host = program.host; }
 if (program.port) { CONNECT_CONFIG.port = program.port; }
 CONNECT_CONFIG.host = CONNECT_CONFIG.host || 'localhost';
 CONNECT_CONFIG.port = CONNECT_CONFIG.port || 6379;
+var USE_CLUSTER = false;
+if (program.cluster || ('' + program.cluster).toLowerCase() === 'true') { USE_CLUSTER = true; }
 
 var DURABILITY = 'soft';
 var START = microtime.now();
@@ -209,25 +212,26 @@ if(cluster.isMaster){
      * Simple db connection, table setup, and publisher methods
      */
     var Redis = require('ioredis');
+    var client;
 
-    /**
-    var client = new Redis({
-        port: CONNECT_CONFIG.port,
-        host: CONNECT_CONFIG.host
-    });
-    */
+    if (USE_CLUSTER) {
+        client = new Redis.Cluster([{
+            port: 7000,
+            host: CONNECT_CONFIG.host
+        }, {
+            port: 7001,
+            host: CONNECT_CONFIG.host
+        }, {
+            port: 7002,
+            host: CONNECT_CONFIG.host
+        });
 
-    var client = new Redis.Cluster([{
-        port: 7000,
-        host: CONNECT_CONFIG.host
-    }, {
-        port: 7001,
-        host: CONNECT_CONFIG.host
-    }, {
-        port: 7002,
-        host: CONNECT_CONFIG.host
+    } else {
+        client = new Redis({
+            port: CONNECT_CONFIG.port,
+            host: CONNECT_CONFIG.host
+        });
     }
-    ]);
 
     var CUR_PASS = 0;
     var NUM_INSERTED = 0;

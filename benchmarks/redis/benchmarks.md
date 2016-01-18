@@ -51,3 +51,24 @@ Note: holds steady at 250k+ messages / sec AFTER publisher stops.
 
 
 # TODO: Try many clients, many messages / sec across nodes
+
+# ===============
+# Multiple Server Tests
+
+## Single redis server, 3 cluster with 3 replicas (6 total instances)
+
+Publisher:
+    ~9,500 messages / second
+
+-Network traffic rates skyrocket to 90+MiB/s with cluster
+-Instance CPUs are low utilization (~10-30%)
+-More messages / sec published increae rate. Additional subscribers marginally add
+traffic oddly
+
+Subscibers:
+    Local: 1 (to check that times don't get skewed)
+
+    Server 1: (3 processes) (10 + 10 = 100) - 100 * 3 = 300
+    Server 2: (same) 300
+
+-Hold steady after a few clients. Biggest bottleneck is node

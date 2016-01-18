@@ -28,6 +28,8 @@ See ZeroMQ. Maybe is a bit faster?
 
 ## Redis
 
+Note: To setup cluster, http://redis.io/topics/cluster-tutorial
+
 # TODO
 
 * Command interface to show sample of data in realtime with line charts
