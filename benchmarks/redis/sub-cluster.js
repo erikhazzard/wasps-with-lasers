@@ -191,9 +191,7 @@ if(cluster.isMaster){
     client.on('reconnect', function (err) { console.log('reconnect'); });
     client.on('connect', function () { 
         console.log('connected');
-    });
 
-    setTimeout(function () {
         async.eachLimit(
             _.range(NUM_CONNECTIONS),
             // if we set to much higher, rethink will always throw connection errors
@@ -243,5 +241,5 @@ if(cluster.isMaster){
             logger.log('worker:bound:' + process.pid,
             'Done! Waiting for messages');
         });
-    }, 5000);
+    });
 }
