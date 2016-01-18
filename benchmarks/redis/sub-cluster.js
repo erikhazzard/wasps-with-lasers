@@ -81,13 +81,14 @@ if(cluster.isMaster){
 
     _.each(workers, function (worker) {
         worker.on('message', function(message) {
-            totalMessagesReceived++;
-            totalMessagesReceivedLatest++;
-            timesLatest.push(message.time);
-            if (message.time < minCurrent) { minCurrent = message.time; }
-            if (message.time > maxCurrent) { maxCurrent = message.time; }
-            if (message.time < minAll) { minAll = message.time; }
-            if (message.time > maxAll) { maxAll = message.time; }
+            totalMessagesReceived += message.times.length;
+            totalMessagesReceivedLatest += message.times.length;
+            timesLatest = timesLatest.concat(message.times);
+
+            if (message.minTime < minCurrent) { minCurrent = message.minTime; }
+            if (message.maxTime > maxCurrent) { maxCurrent = message.maxTime; }
+            if (message.minTime < minAll) { minAll = message.minTime; }
+            if (message.maxTime > maxAll) { maxAll = message.maxTime; }
 
             // TODO: add this back in - removed now for performance
             // times.push(message.time);
@@ -164,6 +165,9 @@ if(cluster.isMaster){
         function setupConnection (connectionIndex, cb) {
             var messagesReceived = 0;
             var previousId = -1;
+            var times = [];
+            var minTime = Infinity;
+            var maxTime = 0;
 
             // spit out progress at 10 % intervals
             if (connectionIndex > 1 && connectionIndex % (NUM_CONNECTIONS / 10) === 0) {
@@ -172,17 +176,28 @@ if(cluster.isMaster){
                 '% done> Bound to queue. Waiting for messages...');
             }
 
+            setInterval(function () {
+                process.send({
+                    messagesReceived: messagesReceived,
+                    times: times,
+                    minTime: minTime,
+                    maxTime: maxTime
+                });
+
+                times = [];
+                minTime = Infinity;
+                maxTime = 0;
+            }, 450);
+
             client.on('message', function (channel, message) {
                 var diff = (microtime.now() - +message) / 1000;
                 messagesReceived++;
 
+                times.push(diff);
+                if (diff < minTime) { minTime = diff; }
+                if (diff > maxTime) { maxTime = diff; }
+
                 // TEST: Sample
-                if (messagesReceived % 3 === 0) {
-                    process.send({
-                        messagesReceived: messagesReceived,
-                        time: diff
-                    });
-                }
 
                 /* Send to master
                 process.send({
