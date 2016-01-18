@@ -209,11 +209,22 @@ if(cluster.isMaster){
      * Simple db connection, table setup, and publisher methods
      */
     var Redis = require('ioredis');
+    /*
     var client = new Redis({
         port: CONNECT_CONFIG.port,
         host: CONNECT_CONFIG.host,
         db: 10
     });
+    */
+    var client = new Redis.Cluster([{
+        port: 30001,
+        host: CONNECT_CONFIG.host
+    }, {
+        port: 30001,
+        host: CONNECT_CONFIG.host
+    }]);
+
+
     var CUR_PASS = 0;
     var NUM_INSERTED = 0;
 
