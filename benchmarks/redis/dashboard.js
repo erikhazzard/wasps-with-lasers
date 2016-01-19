@@ -301,7 +301,7 @@ if(cluster.isMaster){
 
                     // times.push(diff);
                     if (diff < minTime) { minTime = diff; }
-                    if (diff > maxTime) { maxTime = diff; }
+                    else if (diff > maxTime) { maxTime = diff; }
                 });
 
                 // could sub to multiple rooms here

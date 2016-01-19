@@ -109,15 +109,16 @@ Iteration 2:
     Client 2: 4k connections (2k per CPU)
     CPU on Clients: 70 - 85%
 
-    Local: 2k
-        times between 6- 17ms !!! (This is connected to AWS)
 
 Iteration 3:
     SUB:
-    (35k total)
+    (37k total)
         Client: 12k (5 + 5 + 1 + 1)
         Client 2: 12k (5 + 5 + 1 + 1)
         Client 3: 11k (5 + 5 + 1)
+        Local 2k
+            times between 6- 17ms !!! (This is connected to AWS)
+            Max even with 35k+ clients does not exceed ~100ms (outlier)
 
     Pub: 100 messages / sec
         Data: 10kb/s
@@ -127,6 +128,7 @@ Iteration 3:
     Pub: 1000 messages / sec
         node pub-cluster.js -n 5 -t 100 -c 20 -H 172.30.0.179 
         Pub CPU: ~25%
+        never really went above 30
         Sub CPUs: 70 - 100%. Still getting messages
 
     Works perfectly. Messages come in quickly everywhere
@@ -135,6 +137,14 @@ Iteration 3:
     Perfect
 
 
+    Overall: Pub layer is fast as shit. Subs are fast; nodejs can't handle the
+    bandwidth easily
+        With 1k messages / sec test:
+               37,000,000 messages / sec (37million)
+             2,220,000,000 messages / min (2.22 billion)
+            22,200,000,000 messages / 10 min
+
+    TODO: Write scripts to connect to server and exectue scripts
 
 
 ## Cluster

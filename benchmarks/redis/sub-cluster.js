@@ -186,6 +186,7 @@ if(cluster.isMaster){
     var workerId = process.pid;
 
     var messagesReceivedPerSecond = 0;
+    /*
     setInterval(function sendInfoToMaster () {
         process.send({
             messageType: 'messageRate',
@@ -194,6 +195,7 @@ if(cluster.isMaster){
         });
         messagesReceivedPerSecond = 0;
     }, 950);
+    */
 
     // send message to worker process every ~1 second
     setInterval(function sendInfoToMaster () {
@@ -224,13 +226,14 @@ if(cluster.isMaster){
                     '% done> Bound to queue. Waiting for messages...');
                 }
 
+                var curDiff = 0;
                 client.on('message', function (channel, message) {
-                    var diff = (Date.now() * 1000 - +message) / 1000;
+                    curDiff = (microtime.now() - +message) / 1000;
                     messagesReceived++;
 
                     // times.push(diff);
-                    if (diff < minTime) { minTime = diff; }
-                    if (diff > maxTime) { maxTime = diff; }
+                    if (curDiff < minTime) { minTime = curDiff; }
+                    else if (curDiff > maxTime) { maxTime = curDiff; }
                 });
 
                 // could sub to multiple rooms here
