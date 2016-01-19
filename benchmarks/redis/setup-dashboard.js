@@ -44,10 +44,10 @@ module.exports = function setupDashboard (options) {
     // Command Info
     var tableOptions = grid.set(2, 10, 4, 2, contrib.table, {
         fg: 'white',
-        label: 'Run Options',
+        label: 'Command Options',
         interactive: false,
         columnSpacing: 1,
-        columnWidth: [19, 18]
+        columnWidth: [17, 20]
     });
     tableOptions.setData({
         headers: [

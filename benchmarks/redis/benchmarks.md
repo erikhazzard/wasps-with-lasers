@@ -88,6 +88,55 @@ Subscibers:
 
 -CPU : ~ 59%
 
+### Test 2:
+
+Iteration 1:
+    Pub: 1,000m/s
+    CPU: 2 - 3%
+
+    Client 1: 4k connections (2k per CPU)
+    CPU on Client: 70 - 85%
+
+    Works Perfectly
+
+Iteration 2: 
+    Pub: 1,000m/s
+    Data: 100kb/s
+    CPU: 3.3 - 4.6%
+
+    Client 1: 4k connections (2k per CPU)
+    Client 2: 4k connections (2k per CPU)
+    Client 2: 4k connections (2k per CPU)
+    CPU on Clients: 70 - 85%
+
+    Local: 2k
+        times between 6- 17ms !!! (This is connected to AWS)
+
+Iteration 3:
+    SUB:
+    (35k total)
+        Client: 12k (5 + 5 + 1 + 1)
+        Client 2: 12k (5 + 5 + 1 + 1)
+        Client 3: 11k (5 + 5 + 1)
+
+    Pub: 100 messages / sec
+        Data: 10kb/s
+        Pub CPU: 3%
+        Sub CPUs: 10 - 25%, gets all
+        
+    Pub: 1000 messages / sec
+        node pub-cluster.js -n 5 -t 100 -c 20 -H 172.30.0.179 
+        Pub CPU: ~25%
+        Sub CPUs: 70 - 100%. Still getting messages
+
+    Works perfectly. Messages come in quickly everywhere
+
+    Left running for ~10 minutes. When stopping, all messages immediately cleared.
+    Perfect
+
+
+
+
 ## Cluster
 Pub: 10k/sec
     After 400 subs, network traffic is over 100 mb/sec. Then it goes down to
@@ -95,3 +144,4 @@ Pub: 10k/sec
 
 Pub: 500 / sec:
     8 mb/s
+
