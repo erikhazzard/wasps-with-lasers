@@ -36,12 +36,13 @@ program
     .option('-C, --cluster [cluster]', 'Should cluster? (For redis clustered) True or false')
     .parse(process.argv);
 
+var CONNECT_CONFIG = {host: 'localhost', port: 6379};
+
 if (program.host) { CONNECT_CONFIG.host = program.host; }
 if (program.port) { CONNECT_CONFIG.port = program.port; }
 var NUM_CONNECTIONS = isNaN(+program.numConnections) ? 1 : +program.numConnections;
 var NUM_CPUS = isNaN(+program.numCPUs) ? 8 : +program.numCPUs;
 
-var CONNECT_CONFIG = {host: 'localhost', port: 6379};
 CONNECT_CONFIG.host = CONNECT_CONFIG.host || 'localhost';
 CONNECT_CONFIG.port = CONNECT_CONFIG.port || 6379;
 
