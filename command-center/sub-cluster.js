@@ -98,6 +98,7 @@ if(cluster.isMaster){
         });
     });
 
+    /*
     // Log info every second
     setInterval(() => {
         logger.log('cluster-master', 'Got ' +
@@ -116,7 +117,13 @@ if(cluster.isMaster){
         minCurrent = Infinity;
         maxCurrent = 0;
     }, 1000);
+    */
 
+    /**
+     *
+     * Close handlers
+     *
+     */
     function close () {
         logger.log('cluster-master', 'Total received: ' + totalMessagesReceived);
         logger.log('cluster-master', '\t MIN: ' + minAll + 'ms');
@@ -208,7 +215,6 @@ if(cluster.isMaster){
                     if (diff < minTime) { minTime = diff; }
                     if (diff > maxTime) { maxTime = diff; }
 
-                    console.log(message);
                     if (messagesReceived % 19000 === 0) {
                         process.send({
                             messagesReceived: messagesReceived,

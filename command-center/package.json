@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "blessed": "^0.1.81",
-    "blessed-contrib": "^2.5.3"
+    "blessed-contrib": "^2.5.3",
+    "memwatch-next": "^0.2.10"
   }
 }

@@ -72,3 +72,26 @@ Subscibers:
     Server 2: (same) 300
 
 -Hold steady after a few clients. Biggest bottleneck is node
+
+=====
+
+## SINGLE INSTANCE
+
+    * Excellent performance. No missed messages, timings don't degrade
+10k messages/second
+3,600 800 subscribers (two servers) 
+    -Still fast. 0 - 250ms delay
+    -Local (not on same network) : 34 - 90ms delays. MAX acroos ALL is 1182ms
+
+-40 mb/s
+    -Every 400 ubs adds ~4mb / sec, 100 = 1mb/sec
+
+-CPU : ~ 59%
+
+## Cluster
+Pub: 10k/sec
+    After 400 subs, network traffic is over 100 mb/sec. Then it goes down to
+    80mb/sec and additional subs don't add more (why?)
+
+Pub: 500 / sec:
+    8 mb/s

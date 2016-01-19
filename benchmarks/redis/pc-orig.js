@@ -215,10 +215,16 @@ if(cluster.isMaster){
     var client;
 
     if (USE_CLUSTER) {
-        client = new Redis.Cluster([
-            { port: 7000, host: CONNECT_CONFIG.host },
-            { port: 7001, host: CONNECT_CONFIG.host },
-            { port: 7002, host: CONNECT_CONFIG.host }
+        client = new Redis.Cluster([{
+            port: 7000,
+            host: CONNECT_CONFIG.host
+        }, {
+            port: 7001,
+            host: CONNECT_CONFIG.host
+        }, {
+            port: 7002,
+            host: CONNECT_CONFIG.host
+        }
         ]);
 
     } else {
@@ -239,7 +245,7 @@ if(cluster.isMaster){
         var start = microtime.now();
         CUR_PASS++;
 
-        async.eachLimit(_.range(NUM_MESSAGES), 100, function (i, cb) {
+        async.eachLimit(_.range(NUM_MESSAGES), 20, function (i, cb) {
             client.publish(TABLE_NAME, microtime.now());
 
             setImmediate(() => {
@@ -248,6 +254,11 @@ if(cluster.isMaster){
         },
         function () {
             var diff = (microtime.now() - start) / 1000;
+            logger.log('publish/done-with-batch|' + workerId,
+                '<' + CUR_PASS + '> [' + NUM_INSERTED + '] ' +
+                'Inserted [' + d3.format(',')(NUM_INSERTED) + '] messages. ',
+                'Done in ' + (diff) + 'ms');
+
             process.send({
                 numMessages: NUM_MESSAGES,
                 numPasses: CUR_PASS,
