@@ -147,6 +147,48 @@ Iteration 3:
     TODO: Write scripts to connect to server and exectue scripts
 
 
+Iteration 4:
+    Each server: 24.5k clients (`node sub-cluster.js -c 5 -n 700 -H 172.30.0.179` run 7 times)
+
+    Total: 73500 total clients
+
+    Pub:
+        NOTE: Subs perform better (don't crash) when publiser is not bursty
+
+    * 1 msg/s
+        -local: 14 - 25ms
+        -clients: everyone gets it fast. No slow downs
+        -CPU: 0%
+
+    * 10 msg/s
+        -local: 14 - 25ms
+        -Pub CPU: ~0%
+
+    * 20 msg/s
+        -local: same
+        -Pub CPU: ~0%
+        Sub cpus: 5 - 7%
+
+    * 60 msg/s
+        -Local: same
+        -Pub CPU: 5 - 7%
+        -Sub cpus: 15 - 20%
+        -Pub bandwidth: 200kb/s
+
+    * 120 msg/s
+        -Pub CPU: 9-17% (hovers around 10-11% usually)
+        -Sub CPUs: ~30%
+        -Local: 9-30ms (still unaffected)
+
+    * 800 msg/s
+        -redis at ~40%
+        -subs > 100% cpu with -c 5 and -n 700
+        -Subs at 60% with -n 5 and -n 300. Holds well ( 1,500 clinets)
+
+    * 8000 msg/s
+        -sub : 1 cpu with 250 clients handles well, 80% cpu
+
+
 ## Cluster
 Pub: 10k/sec
     After 400 subs, network traffic is over 100 mb/sec. Then it goes down to
