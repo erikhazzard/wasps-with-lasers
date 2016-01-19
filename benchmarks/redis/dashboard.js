@@ -91,26 +91,66 @@ if(cluster.isMaster){
     var lastSample = 0;
 
     var messageRatesPerWorker = {};
+    var numClientsConnectedPerWorker = {};
 
     _.each(workers, function (worker) {
         worker.on('message', function (message) {
-            if (message.messageType === 'workerConnectedComplete') {
+            /**
+             * Connection progress
+             */
+            if (message.messageType === 'workerConnectionProgress') {
+                numClientsConnectedPerWorker[message.workerId] = message.numConnected;
+
+                var totalConnectionsEstablished = 0;
+                _.each(numClientsConnectedPerWorker, function (count) {
+                    totalConnectionsEstablished += count;
+                });
+
+                var progress = ((totalConnectionsEstablished /
+                    (NUM_CPUS * NUM_CONNECTIONS)) * 100);
+
+                dashboard.update({
+                    type: 'clientsConnected',
+                    options: { value: progress }
+                });
+
+
+            } else if (message.messageType === 'workerConnectedComplete') {
                 numWorkersConnected++;
 
                 if (numWorkersConnected >= NUM_CPUS) {
                     // all done
+                    dashboard.update({
+                        type: 'clientsConnected',
+                        options: {
+                            done: true,
+                            value: (NUM_CPUS * NUM_CONNECTIONS)
+                        }
+                    });
                 }
 
+            /**
+             * Update log sample
+             */
             } else if (message.messageType === 'updateLog') {
                 lastSample = message.time;
                 dashboard.update({
                     type: 'log',
-                    options: { message: message.message }
+                    options: {
+                        message: message.message,
+                        value: message.time
+                    }
                 });
 
+            /**
+             * Message rate
+             */
             } else if (message.messageType === 'messageRate') {
                 messageRatesPerWorker[message.workerId] = message.messagesReceivedPerSecond;
 
+            /**
+             * Got update from client
+             */
             } else if (message.messageType === 'clientUpdate') {
                 totalMessagesReceived += message.messagesReceived;
                 totalMessagesReceivedLatest += message.messagesReceived;
@@ -227,7 +267,7 @@ if(cluster.isMaster){
         minTime = Infinity;
         maxTime = 0;
         messagesReceived = 0;
-    }, 450);
+    }, 900);
 
     var lastDiff = 0;
     setInterval(function sendLog () {
@@ -247,7 +287,7 @@ if(cluster.isMaster){
     client.on('connect', function () {
         async.eachLimit(
             _.range(NUM_CONNECTIONS),
-            20,
+            30,
             function setupConnection (connectionIndex, cb) {
                 /**
                  * Listen for messages over subscriber service
@@ -257,6 +297,7 @@ if(cluster.isMaster){
                     lastDiff = diff;
                     messagesReceived++;
                     messagesReceivedPerSecond++;
+
                     // times.push(diff);
                     if (diff < minTime) { minTime = diff; }
                     if (diff > maxTime) { maxTime = diff; }
@@ -264,7 +305,18 @@ if(cluster.isMaster){
 
                 // could sub to multiple rooms here
                 client.subscribe(TABLE_NAME, function () {
-                    return setTimeout(cb, Math.random() * 10 | 0);
+                    if (
+                    (connectionIndex > 1 && connectionIndex % (NUM_CONNECTIONS / 5) === 0) ||
+                    (connectionIndex >= NUM_CONNECTIONS)){
+                        process.send({
+                            workerId: workerId,
+                            messageType: 'workerConnectionProgress',
+                            numConnected: connectionIndex,
+                            percentageConnected: (connectionIndex / NUM_CONNECTIONS)
+                        });
+                    }
+
+                    return setTimeout(cb, Math.random() * 100 | 0);
                 });
 
         }, function (){

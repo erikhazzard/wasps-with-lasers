@@ -42,7 +42,7 @@ module.exports = function setupDashboard (options) {
     });
 
     // Command Info
-    var tableOptions = grid.set(2, 10, 5, 2, contrib.table, {
+    var tableOptions = grid.set(2, 10, 4, 2, contrib.table, {
         fg: 'white',
         label: 'Run Options',
         interactive: false,
@@ -62,14 +62,26 @@ module.exports = function setupDashboard (options) {
         ]
     });
 
-
-    var displayTotalClients = grid.set(7, 10, 3, 2, contrib.lcd, {
-        label: 'Total Clients',
-        color: 'blue',
-        display: +options.commandArguments.NUM_CPUS * +options.commandArguments.NUM_CONNECTIONS,
+    // average actual publisher messages
+    var publisherRate = grid.set(5, 10, 2, 2, contrib.lcd, {
+        label: 'Estimated Publisher Rate',
+        color: 'white',
+        display: '1241',
         segmentWidth: 0.05,
         segmentInterval: 0.12,
         strokeWidth: 0.2,
+        elements: 5,
+        elementSpacing: 3,
+        elementPadding: 1
+    });
+
+    var displayTotalClients = grid.set(7, 10, 3, 2, contrib.lcd, {
+        label: 'Total Clients',
+        color: 'red',
+        display: '0%',
+        segmentWidth: 0.06,
+        segmentInterval: 0.12,
+        strokeWidth: 0.3,
         elements: 5,
         elementSpacing: 4,
         elementPadding: 2
@@ -109,19 +121,7 @@ module.exports = function setupDashboard (options) {
         columnWidth: [14, 10, 10, 16, 14]
     });
 
-    // average actual publisher messages
-    var publisherRate = grid.set(5, 6, 2, 3, contrib.lcd, {
-        label: 'Estimated Publisher Rate',
-        display: '1241',
-        segmentWidth: 0.05,
-        segmentInterval: 0.12,
-        strokeWidth: 0.2,
-        elements: 5,
-        elementSpacing: 3,
-        elementPadding: 1
-    });
-
-    var workerRatesTable = grid.set(7, 6, 5, 3, contrib.table, {
+    var workerRatesTable = grid.set(5, 6, 7, 3, contrib.table, {
         fg: 'green',
         label: 'Rates per worker',
         interactive: false,
@@ -130,9 +130,9 @@ module.exports = function setupDashboard (options) {
     });
 
     // Log sample
-    var timingLog = grid.set(5, 9, 6, 1, contrib.log, {
+    var timingLog = grid.set(5, 9, 7, 1, contrib.log, {
         label: 'Sampled Response Rates',
-        fg: 'green',
+        fg: 'white',
         selectedFg: 'green'
     });
 
@@ -170,7 +170,42 @@ module.exports = function setupDashboard (options) {
         }
     };
 
+    function updateLineChart (lineOptions) {
+        lineOptions = lineOptions || {};
+        /**
+         * Update line chart
+         */
+        var now = new Date();
+        now = now.getMinutes() + ':' + now.getSeconds();
 
+        lineData.min.x.push(now);
+        lineData.min.y.push(lineOptions.min || 0);
+
+        lineData.max.x.push(now);
+        lineData.max.y.push(lineOptions.max || 0);
+
+        lineData.sample.x.push(now);
+        lineData.sample.y.push(lineOptions.sample || 0);
+
+        if (lineData.min.x.length > 25) {
+            lineData.min.x.shift();
+            lineData.min.y.shift();
+
+            lineData.max.x.shift();
+            lineData.max.y.shift();
+
+            lineData.sample.x.shift();
+            lineData.sample.y.shift();
+        }
+        timingsLineChart.setData(_.values(lineData));
+    }
+
+
+    /**
+     *
+     * Render it
+     *
+     */
     setInterval(function() { screen.render(); }, 1500);
     screen.render();
 
@@ -211,30 +246,12 @@ module.exports = function setupDashboard (options) {
                 data: tableTimingsData
             });
 
-            /**
-             * Update line chart
-             */
-            var now = new Date();
-            now = now.getMinutes() + ':' + now.getSeconds();
-
-            lineData.min.x.push(now);
-            lineData.min.y.push(updateOptions.minCurrent || 0);
-
-            lineData.max.x.push(now);
-            lineData.max.y.push(updateOptions.maxCurrent || 0);
-
-            lineData.sample.x.push(now);
-            lineData.sample.y.push(updateOptions.sample || 0);
-
-            if (lineData.min.x.length > 25) {
-                lineData.min.x.shift();
-                lineData.min.y.shift();
-                lineData.max.x.shift();
-                lineData.max.y.shift();
-                lineData.sample.x.shift();
-                lineData.sample.y.shift();
-            }
-            timingsLineChart.setData(_.values(lineData));
+            // Update line chart
+            updateLineChart({
+                min: updateOptions.minCurrent,
+                max: updateOptions.maxCurrent,
+                sample: updateOptions.sample
+            });
 
             // Update message rate per workers
             workerRatesTable.setData({
@@ -256,7 +273,21 @@ module.exports = function setupDashboard (options) {
 
 
         } else if (innerOptions.type === 'log') {
+            // log some data
             timingLog.log(updateOptions.message);
+
+        } else if (innerOptions.type === 'clientsConnected') {
+            var totalConnections = +options.commandArguments.NUM_CPUS * +options.commandArguments.NUM_CONNECTIONS;
+
+            // update # of clients connected
+            if (updateOptions.done === true) {
+                displayTotalClients.setOptions({ color: 'white' });
+                displayTotalClients.setDisplay(updateOptions.value);
+
+            } else {
+                displayTotalClients.setDisplay(updateOptions.value);
+                displayTotalClients.setOptions({ color: 'red' });
+            }
         }
 
         screen.render();
