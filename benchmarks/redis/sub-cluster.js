@@ -84,25 +84,28 @@ if(cluster.isMaster){
 
     _.each(workers, function (worker) {
         worker.on('message', function(message) {
-            totalMessagesReceived += message.times.length;
-            totalMessagesReceivedLatest += message.times.length;
-            timesLatest = timesLatest.concat(message.times);
+            if (message.messageType === 'clientUpdate') {
+                totalMessagesReceived += message.messagesReceived;
+                totalMessagesReceivedLatest += message.messagesReceived;
 
-            if (message.minTime < minCurrent) { minCurrent = message.minTime; }
-            if (message.maxTime > maxCurrent) { maxCurrent = message.maxTime; }
-            if (message.minTime < minAll) { minAll = message.minTime; }
-            if (message.maxTime > maxAll) { maxAll = message.maxTime; }
-
-            // TODO: add this back in - removed now for performance
-            // times.push(message.time);
+                if (message.minTime < minCurrent) { minCurrent = message.minTime; }
+                if (message.maxTime > maxCurrent) { maxCurrent = message.maxTime; }
+                if (message.minTime < minAll) { minAll = message.minTime; }
+                if (message.maxTime > maxAll) { maxAll = message.maxTime; }
+            }
         });
     });
 
     // Log info every second
     setInterval(() => {
+        logger.log('cluster-master', '');
         logger.log('cluster-master', 'Got ' +
-           d3.format(',')(totalMessagesReceivedLatest) + ' messages / sec - ' +
-            d3.format(',')(totalMessagesReceived) + '> total');
+            d3.format(',')(totalMessagesReceivedLatest) + ' messages / sec | ' +
+            d3.format(',')(totalMessagesReceived) + ' total'); 
+        logger.log('cluster-master',
+            d3.format(',')(totalMessagesReceivedLatest / (NUM_CPUS)) + ' messages per process | ' +
+            d3.format(',')(totalMessagesReceivedLatest / (NUM_CPUS * NUM_CONNECTIONS)) + ' publisher rate | ');
+
         logger.log('cluster-master', '\t MIN (ALL): ' + minAll + 'ms');
         logger.log('cluster-master', '\t MAX (ALL: ' + maxAll + 'ms');
 
@@ -157,16 +160,10 @@ if(cluster.isMaster){
     var client;
 
     if (USE_CLUSTER) {
-        client = new Redis.Cluster([{
-            port: 7000,
-            host: CONNECT_CONFIG.host
-        }, {
-            port: 7001,
-            host: CONNECT_CONFIG.host
-        }, {
-            port: 7002,
-            host: CONNECT_CONFIG.host
-        }
+        client = new Redis.Cluster([
+            { port: 7000, host: CONNECT_CONFIG.host },
+            { port: 7001, host: CONNECT_CONFIG.host },
+            { port: 7002, host: CONNECT_CONFIG.host }
         ]);
 
     } else {
@@ -179,20 +176,47 @@ if(cluster.isMaster){
     client.on('error', function (err) { console.log(err); });
     client.on('disconnect', function (err) { console.log('disconnected'); });
     client.on('reconnect', function (err) { console.log('reconnect'); });
-    client.on('connect', function () { 
-        console.log('connected');
 
+
+    var messagesReceived = 0;
+    var previousId = -1;
+    var times = [];
+    var minTime = Infinity;
+    var maxTime = 0;
+    var workerId = process.pid;
+
+    var messagesReceivedPerSecond = 0;
+    setInterval(function sendInfoToMaster () {
+        process.send({
+            messageType: 'messageRate',
+            messagesReceivedPerSecond: messagesReceivedPerSecond,
+            workerId: workerId
+        });
+        messagesReceivedPerSecond = 0;
+    }, 950);
+
+    // send message to worker process every ~1 second
+    setInterval(function sendInfoToMaster () {
+        process.send({
+            messageType: 'clientUpdate',
+            messagesReceived: messagesReceived,
+            workerId: workerId,
+            minTime: minTime,
+            maxTime: maxTime
+        });
+
+        times = [];
+        minTime = Infinity;
+        maxTime = 0;
+        messagesReceived = 0;
+    }, 900);
+
+    client.on('connect', function () {
         async.eachLimit(
             _.range(NUM_CONNECTIONS),
             // if we set to much higher, rethink will always throw connection errors
-            20,
+            40,
             function setupConnection (connectionIndex, cb) {
-                var messagesReceived = 0;
-                var previousId = -1;
-                var times = [];
-                var minTime = Infinity;
-                var maxTime = 0;
-
                 // spit out progress at 10 % intervals
                 if (connectionIndex > 1 && connectionIndex % (NUM_CONNECTIONS / 10) === 0) {
                     logger.log('worker:bound:' + process.pid,
@@ -204,23 +228,9 @@ if(cluster.isMaster){
                     var diff = (Date.now() * 1000 - +message) / 1000;
                     messagesReceived++;
 
-                    times.push(diff);
+                    // times.push(diff);
                     if (diff < minTime) { minTime = diff; }
                     if (diff > maxTime) { maxTime = diff; }
-
-                    console.log(message);
-                    if (messagesReceived % 19000 === 0) {
-                        process.send({
-                            messagesReceived: messagesReceived,
-                            times: times,
-                            minTime: minTime,
-                            maxTime: maxTime
-                        });
-
-                        times = [];
-                        minTime = Infinity;
-                        maxTime = 0;
-                    }
                 });
 
                 // could sub to multiple rooms here
