@@ -88,6 +88,9 @@ if(cluster.isMaster){
     var maxCurrent = 0;
     var minAll = Infinity;
     var maxAll = 0;
+    var lastSample = 0;
+
+    var messageRatesPerWorker = {};
 
     _.each(workers, function (worker) {
         worker.on('message', function (message) {
@@ -99,10 +102,14 @@ if(cluster.isMaster){
                 }
 
             } else if (message.messageType === 'updateLog') {
+                lastSample = message.time;
                 dashboard.update({
                     type: 'log',
                     options: { message: message.message }
                 });
+
+            } else if (message.messageType === 'messageRate') {
+                messageRatesPerWorker[message.workerId] = message.messagesReceivedPerSecond;
 
             } else if (message.messageType === 'clientUpdate') {
                 totalMessagesReceived += message.messagesReceived;
@@ -127,7 +134,9 @@ if(cluster.isMaster){
                 minAll: minAll,
                 maxAll: maxAll,
                 minCurrent: minCurrent,
-                maxCurrent: maxCurrent
+                maxCurrent: maxCurrent,
+                sample: lastSample,
+                messageRatesPerWorker: messageRatesPerWorker
             }
         });
 
@@ -135,6 +144,7 @@ if(cluster.isMaster){
         timesLatest = [];
         minCurrent = Infinity;
         maxCurrent = 0;
+        lastSample = 0;
     }, 1000);
 
 
@@ -157,7 +167,7 @@ if(cluster.isMaster){
     process.on('SIGTERM', close);
     process.on('uncaughtException', function (err) {
         logger.log('error:master', 'uncaught error: ' + err.stack);
-        return close();
+        throw new Error(err);
     });
 
 
@@ -190,13 +200,24 @@ if(cluster.isMaster){
     var times = [];
     var minTime = Infinity;
     var maxTime = 0;
+    var workerId = process.pid;
 
+    var messagesReceivedPerSecond = 0;
+    setInterval(function sendInfoToMaster () {
+        process.send({
+            messageType: 'messageRate',
+            messagesReceivedPerSecond: messagesReceivedPerSecond,
+            workerId: workerId
+        });
+        messagesReceivedPerSecond = 0;
+    }, 950);
 
     // send message to worker process every ~1 second
     setInterval(function sendInfoToMaster () {
         process.send({
             messageType: 'clientUpdate',
             messagesReceived: messagesReceived,
+            workerId: workerId,
             times: times,
             minTime: minTime,
             maxTime: maxTime
@@ -214,7 +235,8 @@ if(cluster.isMaster){
             if (lastDiff !== 0) {
                 process.send({
                     messageType: 'updateLog',
-                    message: lastDiff + 'ms'
+                    message: lastDiff + 'ms',
+                    time: lastDiff
                 });
                 lastDiff = 0;
             }
@@ -234,6 +256,7 @@ if(cluster.isMaster){
                     var diff = (microtime.now() - +message) / 1000;
                     lastDiff = diff;
                     messagesReceived++;
+                    messagesReceivedPerSecond++;
                     // times.push(diff);
                     if (diff < minTime) { minTime = diff; }
                     if (diff > maxTime) { maxTime = diff; }

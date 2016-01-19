@@ -30,7 +30,7 @@ module.exports = function setupDashboard (options) {
     //create layout
     var grid = new contrib.grid({rows: 12, cols: 12, screen: screen});
 
-    var lcdLineOne = grid.set(0, 10, 3, 2, contrib.lcd, {
+    var displayType = grid.set(0, 10, 2, 2, contrib.lcd, {
         label: 'Test Type',
         display: 'SUB',
         segmentWidth: 0.07,
@@ -41,23 +41,8 @@ module.exports = function setupDashboard (options) {
         elementPadding: 2
     });
 
-    var start = new Date();
-    var displayRunningTime = grid.set(3, 10, 3, 2, contrib.lcd, {
-        label: 'Seconds Running',
-        display: '0',
-        segmentWidth: 0.05,
-        segmentInterval: 0.12,
-        strokeWidth: 0.1,
-        elements: 5,
-        elementSpacing: 4,
-        elementPadding: 2
-    });
-    setInterval(function () {
-        displayRunningTime.setDisplay(((new Date() - start) / 1000) | 0);
-    }, 1000);
-
     // Command Info
-    var tableOptions = grid.set(6, 10, 6, 2, contrib.table, {
+    var tableOptions = grid.set(2, 10, 5, 2, contrib.table, {
         fg: 'white',
         label: 'Run Options',
         interactive: false,
@@ -78,77 +63,115 @@ module.exports = function setupDashboard (options) {
     });
 
 
+    var displayTotalClients = grid.set(7, 10, 3, 2, contrib.lcd, {
+        label: 'Total Clients',
+        color: 'blue',
+        display: +options.commandArguments.NUM_CPUS * +options.commandArguments.NUM_CONNECTIONS,
+        segmentWidth: 0.05,
+        segmentInterval: 0.12,
+        strokeWidth: 0.2,
+        elements: 5,
+        elementSpacing: 4,
+        elementPadding: 2
+    });
+
+    var start = new Date();
+    var displayRunningTime = grid.set(10, 10, 2, 2, contrib.lcd, {
+        label: 'Seconds Running',
+        display: '0',
+        segmentWidth: 0.05,
+        segmentInterval: 0.12,
+        strokeWidth: 0.1,
+        elements: 5,
+        elementSpacing: 4,
+        elementPadding: 2
+    });
+    setInterval(function () {
+        displayRunningTime.setDisplay(((new Date() - start) / 1000) | 0);
+        screen.render();
+    }, 1000);
+
+    /**
+     *
+     * Middle content (timings)
+     *
+     */
     /**
      *
      * Table of timing values
      *
      */
-    var tableTimings = grid.set(0, 6, 7, 4, contrib.table, {
+    var tableTimings = grid.set(0, 6, 5, 4, contrib.table, {
         fg: 'green',
-        label: 'Active Processes',
+        label: 'Last Data Per Second',
         interactive: false,
         columnSpacing: 1,
         columnWidth: [14, 10, 10, 16, 14]
     });
 
-    /**
-     *
-     * Timings
-     *
-     */
-    var timingsLineChart = grid.set(0, 0, 6, 6, contrib.line, {
-        showNthLabel: 5,
-        maxY: 100,
-        label: 'Total Transactions',
-        showLegend: true,
-        legend: {width: 10}
+    // average actual publisher messages
+    var publisherRate = grid.set(5, 6, 2, 3, contrib.lcd, {
+        label: 'Estimated Publisher Rate',
+        display: '1241',
+        segmentWidth: 0.05,
+        segmentInterval: 0.12,
+        strokeWidth: 0.2,
+        elements: 5,
+        elementSpacing: 3,
+        elementPadding: 1
+    });
+
+    var workerRatesTable = grid.set(7, 6, 5, 3, contrib.table, {
+        fg: 'green',
+        label: 'Rates per worker',
+        interactive: false,
+        columnSpacing: 1,
+        columnWidth: [14, 20]
     });
 
     // Log sample
-    var timingLog = grid.set(7, 6, 5, 4, contrib.log, {
+    var timingLog = grid.set(5, 9, 6, 1, contrib.log, {
         label: 'Sampled Response Rates',
         fg: 'green',
         selectedFg: 'green'
     });
 
-
-    //dummy data
-    var servers = ['US1', 'US2', 'EU1', 'AU1', 'AS1', 'JP1'];
-    var commands = ['grep', 'node', 'java', 'timer', '~/ls -l', 'netns', 'watchdog', 'gulp', 'tar -xvf', 'awk', 'npm install'];
-
-
-    //set line charts dummy data
-    var transactionsData = {
-       title: 'USA',
-       style: {line: 'red'},
-       x: [],
-       y: []
-    };
-
-    var transactionsData1 = {
-       title: 'Europe',
-       style: {line: 'yellow'},
-       x: [],
-       y: []
-    };
-
-    function setLineData(mockData, line) {
-        for (var i=0; i < mockData.length; i++) {
-            var num = Math.random() * 1000 | 0;
-            mockData[i].x.push(Math.random() * 10 | 0);
-            mockData[i].y.push(num);
-
-            if (mockData[i].x.length > 20) {
-                mockData[i].x.shift();
-                mockData[i].y.shift();
-            }
+    /**
+     *
+     * Left side - line chart
+     *
+     */
+    // Line chart
+    var timingsLineChart = grid.set(0, 0, 11, 6, contrib.line, {
+        showNthLabel: 5,
+        maxY: 100,
+        label: 'Timings',
+        showLegend: true,
+        legend: {width: 10}
+    });
+    var lineData = {
+        max: {
+            title: 'Max',
+            style: {line: 'red'},
+            x: [],
+            y: []
+        },
+        min: {
+            title: 'Min',
+            style: {line: 'blue'},
+            x: [],
+            y: []
+        },
+        sample: {
+            title: 'Sample',
+            style: {line: 'white'},
+            x: [],
+            y: []
         }
+    };
 
-        line.setData(mockData);
-    }
-    setLineData([transactionsData, transactionsData1], timingsLineChart);
 
-    setInterval(function() { screen.render(); }, 800);
+    setInterval(function() { screen.render(); }, 1500);
     screen.render();
 
     // provide direct access to screen
@@ -161,15 +184,16 @@ module.exports = function setupDashboard (options) {
      */
     var tableTimingsData = [];
 
-    returnObject.update = function update (options) {
+    returnObject.update = function update (innerOptions) {
         /**
          *
          * Table timings data
          *
          */
-        var updateOptions = options.options;
+        var updateOptions = innerOptions.options;
 
-        if (options.type === 'table' ) {
+        if (innerOptions.type === 'table' ) {
+            // update table
             if (tableTimingsData.length > 40) { tableTimingsData.pop(); }
 
             tableTimingsData.unshift([
@@ -187,7 +211,51 @@ module.exports = function setupDashboard (options) {
                 data: tableTimingsData
             });
 
-        } else if (options.type === 'log') {
+            /**
+             * Update line chart
+             */
+            var now = new Date();
+            now = now.getMinutes() + ':' + now.getSeconds();
+
+            lineData.min.x.push(now);
+            lineData.min.y.push(updateOptions.minCurrent || 0);
+
+            lineData.max.x.push(now);
+            lineData.max.y.push(updateOptions.maxCurrent || 0);
+
+            lineData.sample.x.push(now);
+            lineData.sample.y.push(updateOptions.sample || 0);
+
+            if (lineData.min.x.length > 25) {
+                lineData.min.x.shift();
+                lineData.min.y.shift();
+                lineData.max.x.shift();
+                lineData.max.y.shift();
+                lineData.sample.x.shift();
+                lineData.sample.y.shift();
+            }
+            timingsLineChart.setData(_.values(lineData));
+
+            // Update message rate per workers
+            workerRatesTable.setData({
+                headers: [
+                    'Worker ID', 'Message Rate'
+                ],
+                data: _.map(updateOptions.messageRatesPerWorker, function (val, key) {
+                    return [key, d3.format(',')(val)];
+                })
+            });
+
+            // update estimated publisher rate
+            // total messages per process / connected clients
+            // first get average
+            var avg = _.sum(_.values(updateOptions.messageRatesPerWorker)) / (
+                Object.keys(updateOptions.messageRatesPerWorker).length);
+            avg = (avg / +options.commandArguments.NUM_CONNECTIONS) | 0;
+            publisherRate.setDisplay(avg);
+
+
+        } else if (innerOptions.type === 'log') {
             timingLog.log(updateOptions.message);
         }
 
