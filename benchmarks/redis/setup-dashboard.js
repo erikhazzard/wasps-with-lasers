@@ -144,7 +144,7 @@ module.exports = function setupDashboard (options) {
     // Line chart
     var timingsLineChart = grid.set(0, 0, 11, 6, contrib.line, {
         showNthLabel: 5,
-        maxY: 100,
+        maxY: 10,
         label: 'Timings',
         showLegend: true,
         legend: {width: 10}
@@ -172,6 +172,8 @@ module.exports = function setupDashboard (options) {
 
     function updateLineChart (lineOptions) {
         lineOptions = lineOptions || {};
+        if (lineOptions.min === Infinity) { lineOptions.min = 0; }
+
         /**
          * Update line chart
          */
@@ -197,6 +199,7 @@ module.exports = function setupDashboard (options) {
             lineData.sample.x.shift();
             lineData.sample.y.shift();
         }
+
         timingsLineChart.setData(_.values(lineData));
     }
 
